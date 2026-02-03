@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Casetify AI Concierge</title>
+    <script src="https://js.stripe.com/v3/"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f5f7;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .chat-container {
+            max-width: 500px;
+            width: 100%;
+            height: 700px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 50px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .chat-header h1 {
+            font-size: 20px;
+            margin-bottom: 5px;
+        }
+
+        .chat-header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message {
+            display: flex;
+            gap: 10px;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.ai {
+            align-self: flex-start;
+        }
+
+        .message.user {
+            align-self: flex-end;
+            flex-direction: row-reverse;
+        }
+
+        .message-avatar {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 18px;
+        }
+
+        .message.ai .message-avatar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .message.user .message-avatar {
+            background: #e0e0e0;
+        }
+
+        .message-bubble {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            word-wrap: break-word;
+        }
+
+        .message.ai .message-bubble {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .message.user .message-bubble {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .payment-form-container {
+            background: #f9f9f9;
+            border: 2px dashed #667eea;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 10px 0;
+        }
+
+        .payment-form-header {
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        #payment-element {
+            margin-bottom: 15px;
+        }
+
+        .pay-button {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .pay-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+        }
+
+        .pay-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .chat-input-container {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid #e0e0e0;
+            border-radius: 25px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .chat-input:focus {
+            border-color: #667eea;
+        }
+
+        .send-button {
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s;
+            font-size: 20px;
+        }
+
+        .send-button:hover:not(:disabled) {
+            transform: scale(1.1);
+        }
+
+        .send-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .typing-indicator {
+            display: flex;
+            gap: 4px;
+            padding: 12px 16px;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background: #999;
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-10px); }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-weight: 500;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <h1>🎨 Casetify AI Concierge</h1>
+            <p>Design your perfect phone case</p>
+        </div>
+
+        <div class="chat-messages" id="chat-messages">
+            <div class="message ai">
+                <div class="message-avatar">🤖</div>
+                <div class="message-bubble">
+                    Hi! I'm your Casetify AI assistant. I'll help you design the perfect custom phone case! 
+                    What phone model do you have?
+                </div>
+            </div>
+        </div>
+
+        <div class="chat-input-container">
+            <input 
+                type="text" 
+                class="chat-input" 
+                id="chat-input" 
+                placeholder="Type your message..."
+                autocomplete="off"
+            />
+            <button class="send-button" id="send-button">➤</button>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const STRIPE_PUBLISHABLE_KEY = 'pk_test_51SNJ8I7SijG0pZIqakMHB0VLJ36yMQugDweQ6H7Zmr3bYo3VZLoQ0AG8Nh5QWsqXWJt48YHinun7yQ60ni59PK3G006Uf5zWOa';
+        const API_ENDPOINT = 'https://p7wkohkhyk.execute-api.us-east-1.amazonaws.com/chat';
+
+        const stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
+        let conversationHistory = [];
+        let elements = null;
+        let currentPaymentData = null;
+
+        const chatMessages = document.getElementById('chat-messages');
+        const chatInput = document.getElementById('chat-input');
+        const sendButton = document.getElementById('send-button');
+
+        // Add message to chat
+        function addMessage(text, isUser = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user' : 'ai'}`;
+            
+            messageDiv.innerHTML = `
+                <div class="message-avatar">${isUser ? '👤' : '🤖'}</div>
+                <div class="message-bubble">${text}</div>
+            `;
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Show typing indicator
+        function showTyping() {
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'message ai';
+            typingDiv.id = 'typing-indicator';
+            typingDiv.innerHTML = `
+                <div class="message-avatar">🤖</div>
+                <div class="message-bubble typing-indicator">
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                </div>
+            `;
+            chatMessages.appendChild(typingDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Remove typing indicator
+        function hideTyping() {
+            const typingIndicator = document.getElementById('typing-indicator');
+            if (typingIndicator) {
+                typingIndicator.remove();
+            }
+        }
+
+        // Show embedded payment form
+        function showPaymentForm(paymentData) {
+            currentPaymentData = paymentData;
+            
+            const paymentContainer = document.createElement('div');
+            paymentContainer.className = 'message ai';
+            paymentContainer.id = 'payment-container';
+            paymentContainer.innerHTML = `
+                <div class="message-avatar">💳</div>
+                <div class="message-bubble" style="max-width: 100%;">
+                    <div class="payment-form-container">
+                        <div class="payment-form-header">
+                            Complete Your Purchase - $${paymentData.amount}
+                        </div>
+                        <form id="payment-form">
+                            <div id="payment-element"></div>
+                            <button type="submit" class="pay-button" id="pay-button">
+                                Pay $${paymentData.amount}
+                            </button>
+                            <div id="payment-message" class="hidden"></div>
+                        </form>
+                    </div>
+                </div>
+            `;
+            
+            chatMessages.appendChild(paymentContainer);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            // Initialize Stripe Elements
+            initializePaymentForm(paymentData.clientSecret);
+        }
+
+        // Initialize payment form
+        async function initializePaymentForm(clientSecret) {
+            elements = stripe.elements({
+                clientSecret,
+                appearance: {
+                    theme: 'stripe',
+                    variables: {
+                        colorPrimary: '#667eea',
+                        borderRadius: '8px'
+                    }
+                }
+            });
+
+            const paymentElement = elements.create('payment');
+            paymentElement.mount('#payment-element');
+
+            // Handle payment submission
+            const form = document.getElementById('payment-form');
+            form.addEventListener('submit', handlePaymentSubmit);
+        }
+
+        // Handle payment submission
+        async function handlePaymentSubmit(e) {
+            e.preventDefault();
+            
+            const payButton = document.getElementById('pay-button');
+            payButton.disabled = true;
+            payButton.textContent = 'Processing...';
+
+            const { error, paymentIntent } = await stripe.confirmPayment({
+                elements,
+                confirmParams: {
+                    return_url: window.location.href,
+                },
+                redirect: 'if_required'
+            });
+
+            if (error) {
+                const messageDiv = document.getElementById('payment-message');
+                messageDiv.textContent = error.message;
+                messageDiv.className = 'error-message';
+                payButton.disabled = false;
+                payButton.textContent = `Pay $${currentPaymentData.amount}`;
+            } else if (paymentIntent && paymentIntent.status === 'succeeded') {
+                // Remove payment form
+                document.getElementById('payment-container').remove();
+                
+                // Show success message
+                addMessage(`✅ Payment successful! Your order has been confirmed. Order ID: ${paymentIntent.id}`);
+                
+                // Send confirmation to backend (optional)
+                sendMessage('Payment completed successfully');
+            }
+        }
+
+        // Send message to backend
+        async function sendMessage(message) {
+            if (!message.trim()) return;
+
+            // Add user message
+            addMessage(message, true);
+            chatInput.value = '';
+            chatInput.disabled = true;
+            sendButton.disabled = true;
+
+            // Show typing indicator
+            showTyping();
+
+            try {
+                const response = await fetch(API_ENDPOINT, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message,
+                        conversationHistory
+                    })
+                });
+
+                const data = await response.json();
+                hideTyping();
+
+                if (data.message) {
+                    addMessage(data.message);
+                }
+
+                // Update conversation history
+                if (data.conversationHistory) {
+                    conversationHistory = data.conversationHistory;
+                }
+
+                // Show payment form if needed
+                if (data.requiresPayment && data.paymentData) {
+                    showPaymentForm(data.paymentData);
+                }
+
+            } catch (error) {
+                hideTyping();
+                addMessage('Sorry, I encountered an error. Please try again.');
+                console.error('Error:', error);
+            }
+
+            chatInput.disabled = false;
+            sendButton.disabled = false;
+            chatInput.focus();
+        }
+
+        // Event listeners
+        sendButton.addEventListener('click', () => {
+            sendMessage(chatInput.value);
+        });
+
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage(chatInput.value);
+            }
+        });
+
+        // Focus input on load
+        chatInput.focus();
+    </script>
+</body>
+</html>
+

@@ -1,0 +1,22 @@
+{
+  "name": "casetify-aws-backend",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "AWS Lambda functions for Casetify AI Concierge",
+  "scripts": {
+    "build": "tsc",
+    "deploy": "echo 'Deployment instructions in README'"
+  },
+  "dependencies": {
+    "@aws-sdk/client-bedrock-runtime": "^3.700.0",
+    "@aws-sdk/client-dynamodb": "^3.700.0",
+    "@aws-sdk/lib-dynamodb": "^3.700.0",
+    "@modelcontextprotocol/sdk": "^1.25.3"
+  },
+  "devDependencies": {
+    "@types/node": "^25.2.0",
+    "@types/aws-lambda": "^8.10.145",
+    "typescript": "^5.9.3"
+  }
+}
+

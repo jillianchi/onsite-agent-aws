@@ -1,0 +1,84 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Casetify AI Concierge - Bedrock Integration
+
+Parameters:
+  StripeSecretKey:
+    Type: String
+    Description: Stripe Secret Key (sk_test_...)
+    NoEcho: true
+
+Globals:
+  Function:
+    Timeout: 30
+    Runtime: nodejs20.x
+    Architectures:
+      - x86_64
+    Environment:
+      Variables:
+        STRIPE_SECRET_KEY: !Ref StripeSecretKey
+
+Resources:
+  # Lambda Function for Bedrock Chat Handler
+  BedrockChatFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: casetify-bedrock-chat
+      CodeUri: ../aws-backend/dist/
+      Handler: bedrock-handler.handler
+      MemorySize: 512
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+                - bedrock:InvokeModelWithResponseStream
+              Resource: 
+                - !Sub 'arn:aws:bedrock:${AWS::Region}::foundation-model/anthropic.claude-3-5-sonnet-20241022-v2:0'
+      Events:
+        ChatApi:
+          Type: HttpApi
+          Properties:
+            Path: /chat
+            Method: post
+            ApiId: !Ref ChatHttpApi
+
+  # HTTP API Gateway
+  ChatHttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      CorsConfiguration:
+        AllowOrigins:
+          - '*'
+        AllowHeaders:
+          - '*'
+        AllowMethods:
+          - POST
+          - OPTIONS
+
+  # Lambda Layer for MCP Server
+  MCPServerLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: casetify-mcp-server
+      Description: MCP Server for Stripe integration
+      ContentUri: ../mcp-server/
+      CompatibleRuntimes:
+        - nodejs20.x
+
+Outputs:
+  ApiEndpoint:
+    Description: "API Gateway endpoint URL"
+    Value: !Sub "https://${ChatHttpApi}.execute-api.${AWS::Region}.amazonaws.com/chat"
+    Export:
+      Name: CasetifyApiEndpoint
+
+  FunctionName:
+    Description: "Lambda Function Name"
+    Value: !Ref BedrockChatFunction
+
+  FunctionArn:
+    Description: "Lambda Function ARN"
+    Value: !GetAtt BedrockChatFunction.Arn
+
