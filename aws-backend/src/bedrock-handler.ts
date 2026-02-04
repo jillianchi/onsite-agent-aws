@@ -102,8 +102,23 @@ async function callMCPTool(toolName: string, args: any): Promise<any> {
 
   await client.close();
 
-  // Convert to plain object to avoid JSON serialization issues with TypeScript types
-  const data = result.structuredContent || result.content;
+  // CRITICAL: Ensure we always return a plain JSON object for Bedrock
+  // MCP tools return either structuredContent (object) or content (array)
+  let data;
+  if (result.structuredContent) {
+    data = result.structuredContent;
+  } else if (result.content && Array.isArray(result.content)) {
+    // Extract text from content array format
+    const textContent = result.content
+      .filter((item: any) => item.text)
+      .map((item: any) => item.text)
+      .join('\n');
+    data = { result: textContent };
+  } else {
+    data = result.content || {};
+  }
+  
+  // Deep clone to ensure it's a plain object without any TypeScript metadata
   return JSON.parse(JSON.stringify(data));
 }
 
@@ -203,15 +218,21 @@ IMPORTANT:
               content.toolUse.input
             );
 
-            console.log("MCP Result:", JSON.stringify(mcpResult, null, 2));
+            console.log("[Tool Result] Type:", typeof mcpResult, "Is Array:", Array.isArray(mcpResult));
+            console.log("[Tool Result] Keys:", mcpResult ? Object.keys(mcpResult) : 'null');
+            console.log("[Tool Result] Value:", JSON.stringify(mcpResult));
 
-            // Ensure it's a plain object for Bedrock
-            const plainResult = JSON.parse(JSON.stringify(mcpResult));
+            // CRITICAL: Validate result is a plain object (not array, not null)
+            if (!mcpResult || typeof mcpResult !== 'object' || Array.isArray(mcpResult)) {
+              const errorMsg = `Invalid tool result: expected object, got ${typeof mcpResult} (array: ${Array.isArray(mcpResult)})`;
+              console.error(errorMsg);
+              throw new Error(errorMsg);
+            }
 
             toolResults.push({
               toolResult: {
                 toolUseId: content.toolUse.toolUseId,
-                content: [{ json: plainResult }]
+                content: [{ json: mcpResult }]
               }
             });
           } catch (error: any) {
