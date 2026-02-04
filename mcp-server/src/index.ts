@@ -105,7 +105,11 @@ server.registerTool(
       amount: Math.round(price * 100),
       currency: "usd",
       description: `${phoneModel} - ${caseType} - ${designCategory}`,
-      automatic_payment_methods: { enabled: true },
+      automatic_payment_methods: { 
+        enabled: true,
+        allow_redirects: 'always' // Enable redirect-based methods like Klarna, Afterpay
+      },
+      payment_method_types: ['card', 'link', 'cashapp', 'klarna', 'afterpay_clearpay'],
       metadata: { configId, phoneModel, caseType, designCategory },
       receipt_email: customerEmail || undefined,
     });

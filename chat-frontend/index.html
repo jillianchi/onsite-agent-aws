@@ -379,7 +379,18 @@
                 }
             });
 
-            const paymentElement = elements.create('payment');
+            const paymentElement = elements.create('payment', {
+                layout: {
+                    type: 'tabs',
+                    defaultCollapsed: false,
+                    radios: false,
+                    spacedAccordionItems: true
+                },
+                wallets: {
+                    applePay: 'auto',
+                    googlePay: 'auto'
+                }
+            });
             paymentElement.mount('#payment-element');
 
             // Handle payment submission
