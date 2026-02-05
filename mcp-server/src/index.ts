@@ -28,9 +28,32 @@ const PRODUCTS = {
   designCategories: ["Floral", "Abstract", "Animals", "Custom Photo", "Solid Colors", "Patterns"]
 };
 
+// Helper function to get product image URL based on configuration
+function getProductImageUrl(phoneModel: string, caseType: string, designCategory: string): string {
+  // For iPhone models, return design-specific images
+  if (phoneModel.toLowerCase().includes('iphone')) {
+    const designImages: Record<string, string> = {
+      'floral': 'https://cdn-image02.casetify.com/usr/13358/1723358/~v1356/3029305_iphone-17-pro-max_16009421__render888.png.500x500-r.m80.webp',
+      'abstract': 'https://cdn-image02.casetify.com/usr/16571/16546571/~v136/35845118_iphone-17-pro-max_16010199__render888.png.500x500-r.m80.webp',
+      'animals': 'https://cdn-image02.casetify.com/usr/11785/3671785/~v946/5606445_iphone-17-pro-max_16009421__render888.png.500x500-r.m80.webp',
+    };
+    
+    const key = designCategory.toLowerCase();
+    return designImages[key] || 'https://cdn-image02.casetify.com/usr/4787/34787/~v3414/12692439x2_iphone-16-pro-max_16007186__render888.png.1000x1000-r.m80.webp';
+  }
+  
+  // For Samsung models, return a default Samsung case image
+  if (phoneModel.toLowerCase().includes('samsung')) {
+    return 'https://cdn-image02.casetify.com/usr/4787/34787/~v3414/12692439x2_iphone-16-pro-max_16007186__render888.png.1000x1000-r.m80.webp';
+  }
+  
+  // Default fallback
+  return 'https://cdn-image02.casetify.com/usr/4787/34787/~v3414/12692439x2_iphone-16-pro-max_16007186__render888.png.1000x1000-r.m80.webp';
+}
+
 // Tool 1: Get products
 server.registerTool(
-  "get-available-products",
+  "get_available_products",
   {
     title: "Get Available Products",
     description: "Get list of available phone case models, types, and designs",
@@ -51,7 +74,7 @@ server.registerTool(
 
 // Tool 2: Configure case
 server.registerTool(
-  "configure-custom-case",
+  "configure_custom_case",
   {
     title: "Configure Custom Case",
     description: "Configure a custom phone case",
@@ -66,6 +89,7 @@ server.registerTool(
   async ({ phoneModel, caseType, designCategory, customText, color }) => {
     const caseInfo = PRODUCTS.caseTypes.find(c => c.id === caseType);
     const price = caseInfo?.price || 29.99;
+    const imageUrl = getProductImageUrl(phoneModel, caseType, designCategory);
     
     return {
       content: [{
@@ -79,7 +103,8 @@ server.registerTool(
         customText: customText || null,
         color: color || "default",
         price,
-        configId: `config_${Date.now()}`
+        configId: `config_${Date.now()}`,
+        imageUrl
       }
     };
   }
@@ -87,7 +112,7 @@ server.registerTool(
 
 // Tool 3: Create payment intent
 server.registerTool(
-  "create-payment-intent",
+  "create_payment_intent",
   {
     title: "Create Payment Intent",
     description: "Create a Payment Intent for checkout",
@@ -105,10 +130,12 @@ server.registerTool(
       amount: Math.round(price * 100),
       currency: "usd",
       description: `${phoneModel} - ${caseType} - ${designCategory}`,
-      payment_method_types: ['card', 'link', 'cashapp', 'klarna', 'afterpay_clearpay'],
+      automatic_payment_methods: { enabled: true },
       metadata: { configId, phoneModel, caseType, designCategory },
       receipt_email: customerEmail || undefined,
     });
+
+    const imageUrl = getProductImageUrl(phoneModel, caseType, designCategory);
 
     return {
       content: [{
@@ -120,7 +147,7 @@ server.registerTool(
         paymentIntentId: paymentIntent.id,
         amount: price,
         currency: "usd",
-        product: { configId, phoneModel, caseType, designCategory }
+        product: { configId, phoneModel, caseType, designCategory, imageUrl, price }
       }
     };
   }
@@ -128,7 +155,7 @@ server.registerTool(
 
 // Tool 4: Verify payment
 server.registerTool(
-  "verify-payment-status",
+  "verify_payment_status",
   {
     title: "Verify Payment Status",
     description: "Check payment status",
@@ -157,7 +184,7 @@ server.registerTool(
 
 // Tool 5: Create order
 server.registerTool(
-  "create-order",
+  "create_order",
   {
     title: "Create Order",
     description: "Create an order after payment",
