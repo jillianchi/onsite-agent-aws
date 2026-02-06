@@ -1,15 +1,15 @@
-# 🎁 Casetify AI Concierge POC
+# Casetify AI Concierge
 
 AI-powered conversational commerce platform for custom phone case purchases using AWS Bedrock (Claude 3.5 Sonnet) and Stripe embedded payments.
 
-## 🚀 What's Built
+## Overview
 
-- **AI Chat Interface** - Natural language product browsing and configuration
-- **Embedded Payments** - Stripe payment form directly in chat (no redirects)
-- **AWS Backend** - Lambda + API Gateway + Bedrock
-- **MCP Server** - Tool calling for products, pricing, and orders
+- AI chat interface for product browsing and configuration
+- Embedded Stripe payment form (no redirects)
+- AWS Lambda + API Gateway + Bedrock backend
+- MCP server for tool calling (products, pricing, orders)
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 ├── chat-frontend/          # Chat UI with embedded Stripe
@@ -29,126 +29,93 @@ AI-powered conversational commerce platform for custom phone case purchases usin
     └── casetify-lambda.zip # Deployable package
 ```
 
-## 🎯 Quick Start
+## Quick Start
 
 ### Prerequisites
 
-1. **Set up environment variables**:
+Set up Stripe keys:
 ```bash
-# Copy example env file
 cp env.example .env
-
 # Edit .env with your Stripe keys from https://dashboard.stripe.com/test/apikeys
-STRIPE_SECRET_KEY=sk_test_xxxxx
-STRIPE_PUBLISHABLE_KEY=pk_test_xxxxx
 ```
 
 ### Local Testing
 
-1. **Start frontend**:
+1. Start frontend:
 ```bash
 cd chat-frontend
 python3 -m http.server 8080
 ```
 
-2. **Open**: http://localhost:8080
+2. Open http://localhost:8080
 
-3. **Chat**: "Hello, I need an iPhone case"
-
-### Edit Product Catalog
-
-Open `mcp-server/src/index.ts`:
-- **Line 15-24**: Edit products, prices, designs
-- **Line 27-42**: Tool implementations
+3. Test with: "Hello, I need an iPhone case"
 
 ### Deploy to AWS
 
-1. **Build package**:
+1. Build package:
 ```bash
 cd infrastructure
 bash package-for-ui.sh
 ```
 
-2. **Upload** `casetify-lambda.zip` to Lambda
+2. Upload `casetify-lambda.zip` to Lambda console
 
-3. **Update** `chat-frontend/index.html` with your API Gateway URL (line 287)
+3. Update `chat-frontend/index.html` with your API Gateway URL
 
-## 🔑 Configuration
+## Configuration
 
-**Stripe Keys** (currently hardcoded for POC):
-- `mcp-server/src/index.ts` line 6 (secret key)
-- `chat-frontend/index.html` line 286 (publishable key)
+Stripe keys are currently hardcoded for POC:
+- `mcp-server/src/index.ts` (secret key)
+- `chat-frontend/index.html` (publishable key)
 
-**For production**: Use environment variables
+For production, use environment variables.
 
-## 🏗️ Tech Stack
+## Tech Stack
 
-- **Frontend**: Vanilla JS + Stripe Elements
-- **Backend**: AWS Lambda (Node.js 20.x)
-- **AI**: AWS Bedrock (Claude 3.5 Sonnet)
-- **Payments**: Stripe Payment Intents
-- **Tools**: MCP (Model Context Protocol)
-- **Region**: US-EAST-1
+- Frontend: Vanilla JS + Stripe Elements
+- Backend: AWS Lambda (Node.js 20.x)
+- AI: AWS Bedrock (Claude 3.5 Sonnet)
+- Payments: Stripe Payment Intents + Payment Element
+- Tools: MCP (Model Context Protocol)
+- Region: US-EAST-1
 
-## 📊 Current Deployment
+### Why Payment Element?
 
-- **Frontend**: http://localhost:8080 (local)
-- **API**: https://p7wkohkhyk.execute-api.us-east-1.amazonaws.com/chat
-- **Lambda**: casetify-bedrock-chat-us
+We use Stripe Payment Element (not Checkout Session) because it embeds directly in the chat with no redirects, maintaining the conversational flow. Checkout Session would require redirects, breaking the UX.
 
-## 🎤 Demo Flow
+## Current Deployment
 
-1. "Show me iPhone 15 Pro cases"
-2. "I want a clear case with floral design"
-3. "Let's checkout"
-4. [Payment form appears]
-5. Use test card: `4242 4242 4242 4242`
+- Frontend: http://localhost:8080 (local)
+- API: https://p7wkohkhyk.execute-api.us-east-1.amazonaws.com/chat
+- Lambda: casetify-bedrock-chat-us
 
-## 📖 Documentation
+## Development
 
-- **START_HERE.md** - Quick reference
-- **CLEAN_SIMPLE_DONE.md** - Architecture details
-
-## ⚠️ Known Limitations
-
-- **Rate limiting**: Wait 30-60 seconds between rapid tests (AWS Bedrock default quota)
-- **Test mode**: Stripe keys are for testing only
-- **Local frontend**: For production, deploy to S3 + CloudFront
-
-## 🚀 Next Steps for Production
-
-1. Deploy frontend to S3 + CloudFront
-2. Switch to production Stripe keys
-3. Add DynamoDB for order persistence
-4. Request Bedrock quota increase
-5. Add custom domain
-
-## 🛠️ Development
-
-**Rebuild after changes**:
+Rebuild after changes:
 ```bash
 cd infrastructure
 bash package-for-ui.sh
 # Upload new casetify-lambda.zip to Lambda
 ```
 
-**View logs**:
-CloudWatch → Log groups → /aws/lambda/casetify-bedrock-chat-us
+View logs: CloudWatch → Log groups → /aws/lambda/casetify-bedrock-chat-us
 
-## 💰 Cost Estimate
+## Known Limitations
 
-**POC/Demo**: ~$5-10/month  
-**Production** (1000 users/day): ~$150-200/month
+- Rate limiting: Wait 30-60 seconds between rapid tests (AWS Bedrock default quota)
+- Test mode: Stripe keys are for testing only
+- Local frontend: For production, deploy to S3 + CloudFront
 
-## ✅ Status
+## Production Checklist
 
-- ✅ Core functionality working
-- ✅ AI conversation flow
-- ✅ Product browsing
-- ✅ Embedded payments
-- ✅ Order creation
-- ⏳ Rate limits (US-EAST-1 default quotas)
+- Deploy frontend to S3 + CloudFront
+- Switch to production Stripe keys
+- Add DynamoDB for order persistence
+- Request Bedrock quota increase
+- Add custom domain
 
----
+## Cost Estimate
 
-**Built with AWS Bedrock, Stripe, and MCP**
+- POC/Demo: ~$5-10/month
+- Production (1000 users/day): ~$150-200/month

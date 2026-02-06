@@ -2,7 +2,6 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { spawn } from 'child_process';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -26,13 +25,8 @@ app.post('/chat', async (req, res) => {
 
     console.log('Received message:', message);
 
-    // For local development, call MCP server directly
-    // In production, this would call the Lambda function
-    const mcpServerPath = path.join(__dirname, '../mcp-server/build/index.js');
-    
     // Simulate Bedrock response for local testing
-    // TODO: Replace with actual Bedrock Lambda invocation when deployed
-    
+    // Note: In production, frontend calls API Gateway directly
     const aiResponse = simulateBedrockResponse(message, conversationHistory);
     
     res.json(aiResponse);

@@ -61,22 +61,5 @@ echo "1. Go to AWS Lambda Console"
 echo "2. Select your function: casetify-bedrock-chat"
 echo "3. Upload casetify-lambda.zip"
 echo "4. Set Handler to: bedrock-handler.handler"
-echo "5. Follow DEPLOY_UI_ONLY.md for complete instructions"
-echo ""
-
-
-# Get file size
-SIZE=$(du -h casetify-lambda.zip | cut -f1)
-
-echo ""
-echo "✅ Package created successfully!"
-echo "📦 File: casetify-lambda.zip"
-echo "📊 Size: $SIZE"
-echo ""
-echo "📋 Next steps:"
-echo "1. Go to AWS Lambda Console"
-echo "2. Create a new function (Node.js 20.x)"
-echo "3. Upload casetify-lambda.zip"
-echo "4. Follow DEPLOY_UI_ONLY.md for complete instructions"
 echo ""
 
