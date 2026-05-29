@@ -1,10 +1,10 @@
 # Onsite Agent on AWS
 
-An agentic commerce reference implementation — a conversational shopping assistant that runs entirely in the browser, powered by AWS Bedrock (Claude), MCP tools, and Stripe.
+An agentic commerce accelerator — a fully deployable conversational shopping experience powered by AWS Bedrock (Claude), MCP tools, and Stripe.
 
 Customers chat with an AI assistant that understands intent, browses a product catalog, and completes checkout — including the Stripe Payment Element — without leaving the chat interface.
 
-Built as a starting point for teams who want to explore agentic commerce on AWS.
+One command deploys the full stack to AWS (Lambda + API Gateway + S3 + CloudFront). The integration points — product catalog, auth, order management — are explicitly designed to be replaced with your own systems.
 
 ![Setup Wizard](docs/setup-wizard.png)
 
@@ -193,7 +193,7 @@ In production, replace the `catalog.json` file read in `mcp-server/src/index.ts`
 
 ## Production considerations
 
-This reference implementation uses production-grade AWS and Stripe infrastructure, but has application-layer gaps that a real deployment would need to address. These are intentionally left open — every team's existing stack will handle them differently.
+This accelerator deploys production-grade AWS and Stripe infrastructure out of the box. The application-layer integration points are intentionally left open — every team's existing stack will handle them differently.
 
 | Area | Current state | What to add |
 |------|--------------|-------------|
