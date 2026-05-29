@@ -8,11 +8,25 @@ Built as a starting point for teams who want to explore agentic commerce on AWS.
 
 ---
 
-## How it works
+## Architecture overview
 
 ![Architecture](docs/aws-agentic-merchant.jpg)
 
-**Key design decision:** The MCP server runs as an embedded stdio subprocess inside the Lambda function. There is no separate service — the entire backend is a single deployable unit.
+**Browser → CloudFront + S3** — The chat UI is a static Next.js export served from S3 via CloudFront. No server required for the frontend.
+
+**Browser → API Gateway → Lambda** — Every chat message is a `POST /chat` to API Gateway, which invokes the Lambda function.
+
+**Lambda → Bedrock** — The Lambda handler sends the conversation to AWS Bedrock (Claude) using the `ConverseCommand` API. Claude decides which tools to call based on the user's message.
+
+**Lambda → MCP Server** — The MCP server runs as an embedded stdio subprocess inside the same Lambda. When Bedrock calls a tool (`get_products`, `configure_product`, `create_payment_intent`), the handler routes it to the MCP server and returns the result back to Bedrock.
+
+**MCP Server → Merchant System** — `get_products` reads from `catalog.json` in the demo. In production this is where you connect your PIM, ERP, or product API.
+
+**MCP Server → Stripe** — `create_payment_intent` calls the Stripe API and returns a `clientSecret` to the browser.
+
+**Browser → Stripe** — The browser uses the `clientSecret` to render the Stripe Payment Element and calls `stripe.confirmPayment()` directly. Payment confirmation never touches your Lambda.
+
+**Key design decision:** The MCP server is embedded inside the Lambda — the entire backend is a single deployable unit with no separate service to provision.
 
 ---
 
