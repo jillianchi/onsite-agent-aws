@@ -6,9 +6,9 @@ Customers chat with an AI assistant that understands intent, browses a product c
 
 Built as a starting point for teams who want to explore agentic commerce on AWS.
 
-| Chat UI | Setup Wizard |
-|---------|-------------|
-| ![Chat UI](docs/chat-ui.png) | ![Setup Wizard](docs/setup-wizard.png) |
+![Setup Wizard](docs/setup-wizard.png)
+
+![Chat UI](docs/chat-ui.png)
 
 ---
 
