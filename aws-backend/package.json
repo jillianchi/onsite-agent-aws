@@ -1,16 +1,14 @@
 {
-  "name": "casetify-aws-backend",
+  "name": "onsite-agent-backend",
   "version": "1.0.0",
   "type": "module",
-  "description": "AWS Lambda functions for Casetify AI Concierge",
+  "description": "AWS Lambda handler for Onsite Agent - Bedrock + MCP + Stripe",
   "scripts": {
-    "build": "tsc",
-    "deploy": "echo 'Deployment instructions in README'"
+    "build": "tsc"
   },
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "^3.700.0",
-    "@aws-sdk/client-dynamodb": "^3.700.0",
-    "@aws-sdk/lib-dynamodb": "^3.700.0",
+    "@aws-sdk/client-ssm": "^3.700.0",
     "@modelcontextprotocol/sdk": "^1.25.3"
   },
   "devDependencies": {
@@ -19,4 +17,3 @@
     "typescript": "^5.9.3"
   }
 }
-

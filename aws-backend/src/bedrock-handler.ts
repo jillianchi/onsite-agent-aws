@@ -2,29 +2,42 @@ import {
   BedrockRuntimeClient,
   ConverseCommand,
   Tool,
-  ToolConfiguration,
   Message,
   ContentBlock
 } from "@aws-sdk/client-bedrock-runtime";
+import { SSMClient, GetParameterCommand } from "@aws-sdk/client-ssm";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 
-const bedrockClient = new BedrockRuntimeClient({ region: "us-east-1" });
+const region = process.env.AWS_REGION || "us-east-1";
 
-// MCP Tools converted to Bedrock tool format
+const bedrockClient = new BedrockRuntimeClient({ region });
+const ssmClient = new SSMClient({ region });
+
+const BEDROCK_MODEL_ID = process.env.BEDROCK_MODEL_ID || "us.anthropic.claude-haiku-4-5-20251001-v1:0";
+
+let cachedStripeKey: string | null = null;
+
+async function getStripeSecretKey(): Promise<string> {
+  if (cachedStripeKey) return cachedStripeKey;
+  const paramPath = process.env.STRIPE_SECRET_KEY_PATH || "/onsite-concierge/stripe-secret-key";
+  const response = await ssmClient.send(
+    new GetParameterCommand({ Name: paramPath, WithDecryption: true })
+  );
+  cachedStripeKey = response.Parameter!.Value!;
+  return cachedStripeKey;
+}
+
 const BEDROCK_TOOLS: Tool[] = [
   {
     toolSpec: {
-      name: "get_available_products",
-      description: "Get list of available phone case models, types, and designs",
+      name: "get_products",
+      description: "Get available products from the store catalog, optionally filtered by category",
       inputSchema: {
         json: {
           type: "object",
           properties: {
-            phoneModel: {
-              type: "string",
-              description: "Optional: Filter by phone model"
-            }
+            category: { type: "string", description: "Optional: filter by product category" }
           }
         }
       }
@@ -32,19 +45,19 @@ const BEDROCK_TOOLS: Tool[] = [
   },
   {
     toolSpec: {
-      name: "configure_custom_case",
-      description: "Configure a custom phone case with specific options chosen by the customer",
+      name: "configure_product",
+      description: "Lock in the customer's product selection with their chosen options. Call this before create_payment_intent.",
       inputSchema: {
         json: {
           type: "object",
           properties: {
-            phoneModel: { type: "string", description: "Phone model (e.g., iPhone 15 Pro)" },
-            caseType: { type: "string", description: "Case type (e.g., clear, ultra-impact)" },
-            designCategory: { type: "string", description: "Design category (e.g., Floral, Animals)" },
-            customText: { type: "string", description: "Optional custom text to add" },
-            color: { type: "string", description: "Optional color choice" }
+            productId: { type: "string", description: "Product ID from get_products" },
+            model: { type: "string", description: "Selected model or variant (e.g. iPhone 16 Pro)" },
+            color: { type: "string", description: "Selected color" },
+            designCategory: { type: "string", description: "Selected design category" },
+            customText: { type: "string", description: "Custom text to engrave or print" }
           },
-          required: ["phoneModel", "caseType", "designCategory"]
+          required: ["productId"]
         }
       }
     }
@@ -52,37 +65,29 @@ const BEDROCK_TOOLS: Tool[] = [
   {
     toolSpec: {
       name: "create_payment_intent",
-      description: "Create a payment intent for the configured case so customer can pay in the chat",
+      description: "Create a Stripe Payment Intent so the customer can complete checkout in the chat. The payment form appears automatically.",
       inputSchema: {
         json: {
           type: "object",
           properties: {
-            configId: { type: "string", description: "Configuration ID from configure_custom_case" },
-            phoneModel: { type: "string" },
-            caseType: { type: "string" },
-            designCategory: { type: "string" },
+            configId: { type: "string" },
+            productId: { type: "string" },
+            productName: { type: "string" },
             price: { type: "number" },
             customerEmail: { type: "string", description: "Optional customer email" }
           },
-          required: ["configId", "phoneModel", "caseType", "designCategory", "price"]
+          required: ["configId", "productId", "productName", "price"]
         }
       }
     }
   }
 ];
 
-/**
- * Call MCP server tool
- * Note: In Lambda, the MCP server needs to be packaged with the function
- */
-async function callMCPTool(toolName: string, args: any): Promise<any> {
+async function callMCPTool(toolName: string, args: any, stripeSecretKey: string): Promise<any> {
   const transport = new StdioClientTransport({
     command: "node",
-    // In Lambda, use relative path to bundled MCP server
     args: [process.env.MCP_SERVER_PATH || "./mcp-server/index.js"],
-    env: {
-      STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY!
-    }
+    env: { STRIPE_SECRET_KEY: stripeSecretKey }
   });
 
   const client = new Client(
@@ -91,38 +96,50 @@ async function callMCPTool(toolName: string, args: any): Promise<any> {
   );
 
   await client.connect(transport);
-
-  // Call MCP tool directly with snake_case name
-  const result = await client.callTool({
-    name: toolName,
-    arguments: args
-  });
-
+  const result = await client.callTool({ name: toolName, arguments: args });
   await client.close();
 
-  // CRITICAL: Ensure we always return a plain JSON object for Bedrock
-  // MCP tools return either structuredContent (object) or content (array)
-  let data;
+  let data: any;
   if (result.structuredContent) {
     data = result.structuredContent;
   } else if (result.content && Array.isArray(result.content)) {
-    // Extract text from content array format
     const textContent = result.content
       .filter((item: any) => item.text)
       .map((item: any) => item.text)
-      .join('\n');
+      .join("\n");
     data = { result: textContent };
   } else {
     data = result.content || {};
   }
-  
-  // Deep clone to ensure it's a plain object without any TypeScript metadata
+
   return JSON.parse(JSON.stringify(data));
 }
 
-/**
- * Main handler for Bedrock conversation
- */
+function buildSystemPrompt(): string {
+  const personaName = process.env.AI_PERSONA_NAME || "Alex";
+  const merchantName = process.env.MERCHANT_NAME || "our store";
+  const personaDescription = process.env.AI_PERSONA_DESCRIPTION || "shopping assistant";
+
+  return `You are ${personaName}, a ${personaDescription} at ${merchantName}. Help customers find and purchase the right product.
+
+STYLE:
+- Warm, concise — 1-2 sentences per thought
+- No emojis. No filler phrases like "Great choice!" or "Absolutely!"
+- Never be pushy
+
+CRITICAL RULES — follow without exception:
+1. NEVER say a product is unavailable without calling get_products first. You have zero inventory knowledge without calling the tool.
+2. NEVER ask for information the customer already gave you.
+3. When message starts with "DIRECT_BUY:" — call configure_product immediately with the provided productId, model, color, and price, then immediately call create_payment_intent with the result. Do NOT ask any questions. Do NOT say anything except a brief one-line confirmation.
+4. When message starts with "PAYMENT_CONFIRMED:" — the customer just completed a purchase. Respond with a warm, brief (2 sentences max), Dunder Mifflin-flavoured confirmation. Reference the product if provided. No tool calls needed.
+
+CONVERSATION FLOW:
+1. Customer asks about products → infer the category from their message (mugs, paper, awards, bags) and call get_products with that category filter. If unclear, call without a filter. Reply with ONE brief sentence only (e.g. "Here's our mug range:"). Do NOT list product details in text — product cards handle that automatically.
+2. If a customer selects a product and you still need their color or quantity → ask for both in ONE message, never separately.
+3. Once you have what you need → call configure_product, then ask if they want to checkout.
+4. When ready to pay → call create_payment_intent using configId, productId, productName, and price from configure_product. Payment form appears automatically.`;
+}
+
 export async function handler(event: any) {
   try {
     console.log("Received event:", JSON.stringify(event));
@@ -133,133 +150,54 @@ export async function handler(event: any) {
     if (!message) {
       return {
         statusCode: 400,
+        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
         body: JSON.stringify({ error: "Message is required" })
       };
     }
 
-    // Build conversation messages
+    const stripeSecretKey = await getStripeSecretKey();
+    const systemPrompt = buildSystemPrompt();
+
     const messages: Message[] = [
       ...conversationHistory,
-      {
-        role: "user",
-        content: [{ text: message }]
-      }
+      { role: "user", content: [{ text: message }] }
     ];
 
-    // System prompt for Casetify AI Concierge
-    const systemPrompt = `You are Cassie, a Casetify stylist who's here to help people design their perfect phone case. Think personal shopper vibes but make it fun.
+    // Agentic loop — runs until Bedrock stops requesting tool calls
+    let paymentData: any = null;
+    let configData: any = null;
+    let productListData: any = null;
+    const MAX_TOOL_ROUNDS = 6;
+    let rounds = 0;
 
-TONE & STYLE:
-- Use casual language: "totally", "honestly", "omg", "ngl" (not gonna lie), "lowkey/highkey", "vibe"
-- Be enthusiastic but authentic - no fake corporate energy
-- Show personality and opinions ("I'm obsessed with that combo!", "That would look so good on you!")
-- Keep it short and punchy - Gen Z attention span
-- Use emojis sparingly but naturally when it makes sense
-- NEVER say "Hello there!" for first message and after - just flow naturally
-- Don't repeat yourself or over-explain
-
-FORMATTING:
-- Short messages (2-3 sentences per thought)
-- Use line breaks to separate ideas
-- Numbered lists when asking questions (makes it easier to answer)
-- Casual but readable
-
-CONVERSATION FLOW:
-1. After they tell you their phone model (ALWAYS write "iPhone" not "Iphone"), jump right into understanding their vibe:
-   - Are they more active/outdoorsy or chill at home vibes?
-   - What's their aesthetic? (minimalist, bold, feminine, artsy, trendy)
-   - Protection level needed or style first?
-   
-2. Based on their vibe, recommend 1-2 case types (NOT all of them):
-   - Clear Case ($29.99): Show off that iPhone, lightweight, everyday protection
-   - Ultra Impact Case ($44.99): Serious protection, perfect for clumsy people or active lifestyles
-   - Leather Case ($54.99): Elevated, ages like fine wine, main character energy
-   - Mirror Case ($39.99): Functional queen, always ready for a quick check
-   
-3. Suggest 1-2 designs that match THEIR vibe (don't dump the whole catalog):
-   - Floral: Romantic, nature girl energy
-   - Abstract: Artsy, unique, conversation starter
-   - Animals: Playful, cute, brings joy
-   - Custom Photo: Make it personal, memories on deck
-   - Solid Colors: Clean, timeless, effortless
-   - Patterns: Bold, trendy, statement piece
-
-4. AFTER using configure_custom_case tool, ALWAYS continue the conversation:
-   - Get hyped about their choice ("Omg yes! This combo is *chef's kiss*")
-   - Paint a picture of how good it'll look
-   - Ask if they want to checkout OR if they want to explore other options
-   - Be supportive either way (no pressure)
-
-5. When they say they want to checkout/pay (e.g., "checkout", "lets pay", "I'm ready"):
-   - First, respond with a quick, friendly confirmation message like:
-     * "Okay! Just confirm your details below and we're good to go 🎉"
-     * "Let's do it! Check out your config and enter your payment info below"
-     * "Perfect! Your details are all set - just fill in payment and we'll get this shipped!"
-   - Then IMMEDIATELY call create_payment_intent tool in the SAME response
-   - Use the data from the configure_custom_case result you got earlier
-   - Required params: configId, phoneModel, caseType, designCategory, price
-   - The payment form will appear automatically after the message
-
-AVAILABLE PRODUCTS:
-- Phone Models: iPhone 15 Pro, iPhone 15, iPhone 14 Pro, Samsung S24, Samsung S23
-- All case types compatible with all models
-
-RULES:
-- Never be pushy or salesy
-- If they want to explore more options, totally support that
-- Don't explain technical stuff unless asked
-- Keep the energy positive and helpful
-- Make them feel good about their choice`;
-
-
-    // Call Bedrock
-    const command = new ConverseCommand({
-      modelId: "anthropic.claude-3-5-sonnet-20240620-v1:0",
+    let response = await bedrockClient.send(new ConverseCommand({
+      modelId: BEDROCK_MODEL_ID,
       messages,
       system: [{ text: systemPrompt }],
-      toolConfig: {
-        tools: BEDROCK_TOOLS
-      },
-      inferenceConfig: {
-        maxTokens: 2048,
-        temperature: 0.9,
-        topP: 0.95
-      }
-    });
+      toolConfig: { tools: BEDROCK_TOOLS },
+      inferenceConfig: { maxTokens: 1024, temperature: 0.7 }
+    }));
 
-    const response = await bedrockClient.send(command);
-
-    // Handle tool calls
-    if (response.stopReason === "tool_use") {
+    while (response.stopReason === "tool_use" && rounds < MAX_TOOL_ROUNDS) {
+      rounds++;
       const toolResults: ContentBlock[] = [];
-      
-      // Extract any text that came with the tool call
-      let toolCallMessage = "";
-      for (const content of response.output?.message?.content || []) {
-        if (content.text) {
-          toolCallMessage = content.text;
-        }
-      }
 
       for (const content of response.output?.message?.content || []) {
-        if (content.toolUse && content.toolUse.name) {
+        if (content.toolUse?.name) {
           console.log("Tool called:", content.toolUse.name, content.toolUse.input);
 
           try {
             const mcpResult = await callMCPTool(
               content.toolUse.name,
-              content.toolUse.input
+              content.toolUse.input,
+              stripeSecretKey
             );
 
-            console.log("[Tool Result] Type:", typeof mcpResult, "Is Array:", Array.isArray(mcpResult));
-            console.log("[Tool Result] Keys:", mcpResult ? Object.keys(mcpResult) : 'null');
-            console.log("[Tool Result] Value:", JSON.stringify(mcpResult));
-
-            // CRITICAL: Validate result is a plain object (not array, not null)
-            if (!mcpResult || typeof mcpResult !== 'object' || Array.isArray(mcpResult)) {
-              const errorMsg = `Invalid tool result: expected object, got ${typeof mcpResult} (array: ${Array.isArray(mcpResult)})`;
-              console.error(errorMsg);
-              throw new Error(errorMsg);
+            // Capture results by type
+            if (mcpResult && typeof mcpResult === "object") {
+              if ("clientSecret" in mcpResult) paymentData = mcpResult;
+              else if ("configId" in mcpResult) configData = mcpResult;
+              else if ("products" in mcpResult) productListData = mcpResult;
             }
 
             toolResults.push({
@@ -281,72 +219,31 @@ RULES:
         }
       }
 
-      // Send tool results back to Bedrock for final response
-      if (toolResults.length > 0) {
-        if (response.output?.message) {
-          messages.push(response.output.message);
-        }
-        messages.push({
-          role: "user",
-          content: toolResults
-        });
+      if (response.output?.message) messages.push(response.output.message);
+      messages.push({ role: "user", content: toolResults });
 
-        const followUpCommand = new ConverseCommand({
-          modelId: "anthropic.claude-3-5-sonnet-20240620-v1:0",
-          messages,
-          system: [{ text: systemPrompt }],
-          toolConfig: {
-            tools: BEDROCK_TOOLS
-          }
-        });
-
-        const followUpResponse = await bedrockClient.send(followUpCommand);
-        
-        // Debug logging
-        console.log('[Lambda] Tool Results:', JSON.stringify(toolResults, null, 2));
-        const paymentData = toolResults.find(r => {
-          const json = r.toolResult?.content?.[0]?.json;
-          return json && typeof json === 'object' && 'clientSecret' in json;
-        })?.toolResult?.content?.[0]?.json;
-        console.log('[Lambda] Extracted paymentData:', paymentData);
-        
-        return {
-          statusCode: 200,
-          headers: {
-            "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*"
-          },
-          body: JSON.stringify({
-            message: toolCallMessage || followUpResponse.output?.message?.content?.[0]?.text || "Processing...",
-            conversationHistory: messages,
-            toolResults: toolResults,
-            requiresPayment: toolResults.some(r => {
-              const json = r.toolResult?.content?.[0]?.json;
-              return json && typeof json === 'object' && 'clientSecret' in json;
-            }),
-            paymentData: toolResults.find(r => {
-              const json = r.toolResult?.content?.[0]?.json;
-              return json && typeof json === 'object' && 'clientSecret' in json;
-            })?.toolResult?.content?.[0]?.json,
-            config: toolResults.find(r => {
-              const json = r.toolResult?.content?.[0]?.json;
-              return json && typeof json === 'object' && 'configId' in json && !('clientSecret' in json);
-            })?.toolResult?.content?.[0]?.json
-          })
-        };
-      }
+      response = await bedrockClient.send(new ConverseCommand({
+        modelId: BEDROCK_MODEL_ID,
+        messages,
+        system: [{ text: systemPrompt }],
+        toolConfig: { tools: BEDROCK_TOOLS },
+        inferenceConfig: { maxTokens: 1024, temperature: 0.7 }
+      }));
     }
 
-    // Regular text response
+    const finalText = response.output?.message?.content?.[0]?.text || "Done!";
+    if (response.output?.message) messages.push(response.output.message);
+
     return {
       statusCode: 200,
-      headers: {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*"
-      },
+      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
       body: JSON.stringify({
-        message: response.output?.message?.content?.[0]?.text || "I'm here to help!",
-        conversationHistory: response.output?.message ? [...messages, response.output.message] : messages
+        message: finalText,
+        conversationHistory: messages,
+        requiresPayment: !!paymentData,
+        paymentData,
+        config: configData,
+        productList: productListData?.products || null,
       })
     };
 
@@ -354,15 +251,8 @@ RULES:
     console.error("Handler error:", error);
     return {
       statusCode: 500,
-      headers: {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*"
-      },
-      body: JSON.stringify({
-        error: "Internal server error",
-        message: error.message
-      })
+      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+      body: JSON.stringify({ error: "Internal server error", message: error.message })
     };
   }
 }
-

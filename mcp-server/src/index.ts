@@ -2,8 +2,9 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import Stripe from "stripe";
+import { readFileSync } from "fs";
+import { resolve } from "path";
 
-// Get Stripe key from environment variable
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
 if (!STRIPE_SECRET_KEY) {
   console.error("Missing STRIPE_SECRET_KEY environment variable");
@@ -11,183 +12,182 @@ if (!STRIPE_SECRET_KEY) {
 }
 const stripe = new Stripe(STRIPE_SECRET_KEY);
 
+// Load catalog from CATALOG_PATH env var, or look next to this file, or use empty fallback
+function loadCatalog() {
+  const candidates = [
+    process.env.CATALOG_PATH,
+    resolve(process.cwd(), "catalog.json"),
+    resolve(import.meta.dirname ?? __dirname, "catalog.json"),
+    resolve(import.meta.dirname ?? __dirname, "../catalog.json"),
+    resolve(import.meta.dirname ?? __dirname, "../../catalog.json"),
+  ].filter(Boolean) as string[];
+
+  for (const path of candidates) {
+    try {
+      const raw = readFileSync(path, "utf-8");
+      return JSON.parse(raw);
+    } catch {
+      // try next
+    }
+  }
+  console.error("Warning: No catalog.json found — using empty catalog");
+  return { currency: "usd", products: [], quickPrompts: [] };
+}
+
+const catalog = loadCatalog();
+
 const server = new McpServer({
-  name: "casetify-concierge-mcp",
+  name: "onsite-agent-mcp",
   version: "1.0.0",
 });
 
-// Product catalog data
-const PRODUCTS = {
-  models: ["iPhone 15 Pro", "iPhone 15", "iPhone 14 Pro", "iPhone 14"],
-  caseTypes: [
-    { id: "clear", name: "Clear Case", price: 29.99 },
-    { id: "ultra-impact", name: "Ultra Impact Case", price: 44.99 },
-    { id: "leather", name: "Leather Case", price: 54.99 },
-    { id: "mirror", name: "Mirror Case", price: 39.99 }
-  ],
-  designCategories: ["Floral", "Abstract", "Animals", "Custom Photo", "Solid Colors", "Patterns"]
-};
-
-// Helper function to get product image URL based on configuration
-function getProductImageUrl(phoneModel: string, caseType: string, designCategory: string): string {
-  // For iPhone models, return design-specific images
-  if (phoneModel.toLowerCase().includes('iphone')) {
-    const designImages: Record<string, string> = {
-      'floral': 'https://cdn-image02.casetify.com/usr/13358/1723358/~v1356/3029305_iphone-17-pro-max_16009421__render888.png.500x500-r.m80.webp',
-      'abstract': 'https://cdn-image02.casetify.com/usr/16571/16546571/~v136/35845118_iphone-17-pro-max_16010199__render888.png.500x500-r.m80.webp',
-      'animals': 'https://cdn-image02.casetify.com/usr/11785/3671785/~v946/5606445_iphone-17-pro-max_16009421__render888.png.500x500-r.m80.webp',
-    };
-    
-    const key = designCategory.toLowerCase();
-    return designImages[key] || 'https://cdn-image02.casetify.com/usr/4787/34787/~v3414/12692439x2_iphone-16-pro-max_16007186__render888.png.1000x1000-r.m80.webp';
-  }
-  
-  // For Samsung models, return a default Samsung case image
-  if (phoneModel.toLowerCase().includes('samsung')) {
-    return 'https://cdn-image02.casetify.com/usr/4787/34787/~v3414/12692439x2_iphone-16-pro-max_16007186__render888.png.1000x1000-r.m80.webp';
-  }
-  
-  // Default fallback
-  return 'https://cdn-image02.casetify.com/usr/4787/34787/~v3414/12692439x2_iphone-16-pro-max_16007186__render888.png.1000x1000-r.m80.webp';
-}
-
-// Tool 1: Get products
 server.registerTool(
-  "get_available_products",
+  "get_products",
   {
-    title: "Get Available Products",
-    description: "Get list of available phone case models, types, and designs",
+    title: "Get Products",
+    description: "Get available products from the store catalog, optionally filtered by category",
     inputSchema: {
-      phoneModel: z.string().optional(),
+      category: z.string().optional().describe("Optional: filter by product category"),
     },
   },
-  async ({ phoneModel }) => {
+  async ({ category }) => {
+    const products = category
+      ? catalog.products.filter((p: any) => p.category?.toLowerCase() === category.toLowerCase())
+      : catalog.products;
+
+    const summary = products.map((p: any) =>
+      `- ${p.name} ($${p.price}): ${p.description}` +
+      (p.options?.models?.length ? `\n  Models: ${p.options.models.join(", ")}` : "") +
+      (p.options?.colors?.length ? `\n  Colors: ${p.options.colors.join(", ")}` : "") +
+      (p.options?.designCategories?.length ? `\n  Designs: ${p.options.designCategories.join(", ")}` : "")
+    ).join("\n\n");
+
     return {
-      content: [{
-        type: "text",
-        text: `Available products:\n- Models: ${PRODUCTS.models.join(", ")}\n- Case Types: ${PRODUCTS.caseTypes.map(c => `${c.name} ($${c.price})`).join(", ")}\n- Design Categories: ${PRODUCTS.designCategories.join(", ")}`
-      }],
-      structuredContent: PRODUCTS
+      content: [{ type: "text", text: `Available products:\n\n${summary}` }],
+      structuredContent: { products, currency: catalog.currency }
     };
   }
 );
 
-// Tool 2: Configure case
 server.registerTool(
-  "configure_custom_case",
+  "configure_product",
   {
-    title: "Configure Custom Case",
-    description: "Configure a custom phone case",
+    title: "Configure Product",
+    description: "Lock in the customer's product selection with their chosen options. Call this before create_payment_intent.",
     inputSchema: {
-      phoneModel: z.string(),
-      caseType: z.string(),
-      designCategory: z.string(),
-      customText: z.string().optional(),
-      color: z.string().optional(),
+      productId: z.string().describe("Product ID from get_products"),
+      model: z.string().optional().describe("Selected model or variant (e.g. iPhone 16 Pro)"),
+      color: z.string().optional().describe("Selected color"),
+      designCategory: z.string().optional().describe("Selected design category"),
+      customText: z.string().optional().describe("Custom text to engrave or print"),
     },
   },
-  async ({ phoneModel, caseType, designCategory, customText, color }) => {
-    const caseInfo = PRODUCTS.caseTypes.find(c => c.id === caseType);
-    const price = caseInfo?.price || 29.99;
-    const imageUrl = getProductImageUrl(phoneModel, caseType, designCategory);
-    
+  async ({ productId, model, color, designCategory, customText }) => {
+    const product = catalog.products.find((p: any) => p.id === productId);
+    if (!product) {
+      return {
+        content: [{ type: "text", text: `Product "${productId}" not found in catalog` }],
+        structuredContent: { error: "Product not found" }
+      };
+    }
+
+    const config = {
+      configId: `config_${Date.now()}`,
+      productId: product.id,
+      productName: product.name,
+      model: model || null,
+      color: color || null,
+      designCategory: designCategory || null,
+      customText: customText || null,
+      price: product.price,
+      imageUrl: product.imageUrl || null,
+      category: product.category || null,
+    };
+
+    const description = [
+      product.name,
+      model,
+      color,
+      designCategory,
+      customText ? `"${customText}"` : null,
+    ].filter(Boolean).join(" — ");
+
     return {
-      content: [{
-        type: "text",
-        text: `Case configured:\n- Phone: ${phoneModel}\n- Type: ${caseType}\n- Design: ${designCategory}\n${customText ? `- Text: ${customText}\n` : ''}- Price: $${price}`
-      }],
-      structuredContent: {
-        phoneModel,
-        caseType,
-        designCategory,
-        customText: customText || null,
-        color: color || "default",
-        price,
-        configId: `config_${Date.now()}`,
-        imageUrl
-      }
+      content: [{ type: "text", text: `Configured: ${description} ($${product.price})` }],
+      structuredContent: config
     };
   }
 );
 
-// Tool 3: Create payment intent
 server.registerTool(
   "create_payment_intent",
   {
     title: "Create Payment Intent",
-    description: "Create a Payment Intent for checkout",
+    description: "Create a Stripe Payment Intent for checkout. The checkout form will appear automatically in the chat.",
     inputSchema: {
       configId: z.string(),
-      phoneModel: z.string(),
-      caseType: z.string(),
-      designCategory: z.string(),
+      productId: z.string(),
+      productName: z.string(),
       price: z.number().positive(),
       customerEmail: z.string().email().optional(),
     },
   },
-  async ({ configId, phoneModel, caseType, designCategory, price, customerEmail }) => {
+  async ({ configId, productId, productName, price, customerEmail }) => {
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(price * 100),
-      currency: "usd",
-      description: `${phoneModel} - ${caseType} - ${designCategory}`,
+      currency: catalog.currency || "usd",
+      description: productName,
       automatic_payment_methods: { enabled: true },
-      metadata: { configId, phoneModel, caseType, designCategory },
+      metadata: { configId, productId },
       receipt_email: customerEmail || undefined,
     });
 
-    const imageUrl = getProductImageUrl(phoneModel, caseType, designCategory);
-
     return {
-      content: [{
-        type: "text",
-        text: `Payment Intent created for ${phoneModel} ${caseType} case - $${price}`
-      }],
+      content: [{ type: "text", text: `Payment Intent created for ${productName} — $${price}` }],
       structuredContent: {
         clientSecret: paymentIntent.client_secret,
         paymentIntentId: paymentIntent.id,
         amount: price,
-        currency: "usd",
-        product: { configId, phoneModel, caseType, designCategory, imageUrl, price }
+        currency: catalog.currency || "usd",
+        product: { configId, productId, productName, price }
       }
     };
   }
 );
 
-// Tool 4: Verify payment
 server.registerTool(
   "verify_payment_status",
   {
     title: "Verify Payment Status",
-    description: "Check payment status",
+    description: "Check the status of a payment",
     inputSchema: {
       paymentIntentId: z.string(),
     },
   },
   async ({ paymentIntentId }) => {
     const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
-    
+
     return {
       content: [{
         type: "text",
-        text: `Payment ${paymentIntent.id}: ${paymentIntent.status}${paymentIntent.status === 'succeeded' ? ' ✅' : ''}`
+        text: `Payment ${paymentIntent.id}: ${paymentIntent.status}${paymentIntent.status === "succeeded" ? " ✅" : ""}`
       }],
       structuredContent: {
         id: paymentIntent.id,
         status: paymentIntent.status,
         amount: paymentIntent.amount / 100,
         currency: paymentIntent.currency,
-        paid: paymentIntent.status === 'succeeded'
+        paid: paymentIntent.status === "succeeded"
       }
     };
   }
 );
 
-// Tool 5: Create order
 server.registerTool(
   "create_order",
   {
     title: "Create Order",
-    description: "Create an order after payment",
+    description: "Create an order record after payment is confirmed",
     inputSchema: {
       paymentIntentId: z.string(),
       customerEmail: z.string().email().optional(),
@@ -195,19 +195,15 @@ server.registerTool(
   },
   async ({ paymentIntentId, customerEmail }) => {
     const orderId = `ORD-${Date.now()}`;
-    
+
     return {
-      content: [{
-        type: "text",
-        text: `Order ${orderId} created successfully! Estimated delivery: 7-10 business days.`
-      }],
+      content: [{ type: "text", text: `Order ${orderId} confirmed.` }],
       structuredContent: {
         orderId,
         paymentIntentId,
         customerEmail: customerEmail || null,
         status: "confirmed",
         createdAt: new Date().toISOString(),
-        estimatedDelivery: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
       }
     };
   }
@@ -216,10 +212,10 @@ server.registerTool(
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error("Casetify MCP Server started");
+  console.error("Onsite Agent MCP Server started");
 }
 
-main().catch((err) => {
+main().catch(err => {
   console.error("Fatal error:", err);
   process.exit(1);
 });

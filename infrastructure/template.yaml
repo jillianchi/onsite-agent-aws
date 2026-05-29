@@ -1,32 +1,59 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: Casetify AI Concierge - Bedrock Integration
+Description: Onsite Agent - AI-powered conversational commerce (Bedrock + MCP + Stripe)
 
 Parameters:
-  StripeSecretKey:
+  MerchantName:
     Type: String
-    Description: Stripe Secret Key (sk_test_...)
-    NoEcho: true
+    Default: "My Store"
+    Description: Merchant display name shown in the chat UI
+
+  AiPersonaName:
+    Type: String
+    Default: "Alex"
+    Description: Name of the AI shopping assistant
+
+  AiPersonaDescription:
+    Type: String
+    Default: "Your shopping assistant"
+    Description: Brief role description shown in the chat header
+
+  StripePublishableKey:
+    Type: String
+    Description: "Stripe Publishable Key (pk_test_... or pk_live_...)"
+
+  StripeSecretKeyPath:
+    Type: String
+    Default: "/onsite-concierge/stripe-secret-key"
+    Description: "SSM Parameter Store path for the Stripe Secret Key (pre-create as SecureString before deploying)"
+
+  BedrockModelId:
+    Type: String
+    Default: "us.anthropic.claude-haiku-4-5-20251001-v1:0"
+    Description: "Bedrock inference profile ID. Use us.anthropic.claude-sonnet-4-6-20250514-v1:0 for higher quality."
 
 Globals:
   Function:
-    Timeout: 30
+    Timeout: 60
     Runtime: nodejs20.x
     Architectures:
       - x86_64
-    Environment:
-      Variables:
-        STRIPE_SECRET_KEY: !Ref StripeSecretKey
 
 Resources:
-  # Lambda Function for Bedrock Chat Handler
   BedrockChatFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: casetify-bedrock-chat
+      FunctionName: !Sub "onsite-agent-${AWS::StackName}"
       CodeUri: ../aws-backend/dist/
       Handler: bedrock-handler.handler
       MemorySize: 512
+      Environment:
+        Variables:
+          MERCHANT_NAME: !Ref MerchantName
+          AI_PERSONA_NAME: !Ref AiPersonaName
+          AI_PERSONA_DESCRIPTION: !Ref AiPersonaDescription
+          BEDROCK_MODEL_ID: !Ref BedrockModelId
+          STRIPE_SECRET_KEY_PATH: !Ref StripeSecretKeyPath
       Policies:
         - Version: '2012-10-17'
           Statement:
@@ -34,8 +61,11 @@ Resources:
               Action:
                 - bedrock:InvokeModel
                 - bedrock:InvokeModelWithResponseStream
-              Resource: 
-                - !Sub 'arn:aws:bedrock:${AWS::Region}::foundation-model/anthropic.claude-3-5-sonnet-20241022-v2:0'
+              Resource: '*'
+            - Effect: Allow
+              Action:
+                - ssm:GetParameter
+              Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/onsite-concierge/*"
       Events:
         ChatApi:
           Type: HttpApi
@@ -44,7 +74,6 @@ Resources:
             Method: post
             ApiId: !Ref ChatHttpApi
 
-  # HTTP API Gateway
   ChatHttpApi:
     Type: AWS::Serverless::HttpApi
     Properties:
@@ -57,28 +86,91 @@ Resources:
           - POST
           - OPTIONS
 
-  # Lambda Layer for MCP Server
-  MCPServerLayer:
-    Type: AWS::Serverless::LayerVersion
+  FrontendBucket:
+    Type: AWS::S3::Bucket
     Properties:
-      LayerName: casetify-mcp-server
-      Description: MCP Server for Stripe integration
-      ContentUri: ../mcp-server/
-      CompatibleRuntimes:
-        - nodejs20.x
+      BucketName: !Sub "onsite-agent-${AWS::StackName}-${AWS::AccountId}-${AWS::Region}"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  FrontendBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref FrontendBucket
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub "${FrontendBucket.Arn}/*"
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistribution}"
+
+  FrontendOAC:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub "onsite-agent-oac-${AWS::StackName}"
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  CloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        DefaultRootObject: index.html
+        Enabled: true
+        Origins:
+          - Id: S3Origin
+            DomainName: !GetAtt FrontendBucket.RegionalDomainName
+            OriginAccessControlId: !GetAtt FrontendOAC.Id
+            S3OriginConfig: {}
+        DefaultCacheBehavior:
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD, OPTIONS]
+          CachedMethods: [GET, HEAD]
+          TargetOriginId: S3Origin
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+          Compress: true
+        PriceClass: PriceClass_100
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /index.html
 
 Outputs:
   ApiEndpoint:
     Description: "API Gateway endpoint URL"
     Value: !Sub "https://${ChatHttpApi}.execute-api.${AWS::Region}.amazonaws.com/chat"
     Export:
-      Name: CasetifyApiEndpoint
+      Name: !Sub "${AWS::StackName}-ApiEndpoint"
 
-  FunctionName:
-    Description: "Lambda Function Name"
-    Value: !Ref BedrockChatFunction
+  FrontendBucketName:
+    Description: "S3 bucket name for frontend assets"
+    Value: !Ref FrontendBucket
+    Export:
+      Name: !Sub "${AWS::StackName}-FrontendBucket"
 
-  FunctionArn:
-    Description: "Lambda Function ARN"
-    Value: !GetAtt BedrockChatFunction.Arn
+  CloudFrontDomain:
+    Description: "Frontend URL (CloudFront)"
+    Value: !Sub "https://${CloudFrontDistribution.DomainName}"
+    Export:
+      Name: !Sub "${AWS::StackName}-FrontendUrl"
 
+  StripePublishableKey:
+    Description: "Stripe Publishable Key (used by deploy.sh to generate frontend config)"
+    Value: !Ref StripePublishableKey
+    Export:
+      Name: !Sub "${AWS::StackName}-StripePublishableKey"
+
+  CloudFrontDistributionId:
+    Description: "CloudFront Distribution ID (used by deploy.sh for cache invalidation)"
+    Value: !Ref CloudFrontDistribution
+    Export:
+      Name: !Sub "${AWS::StackName}-CloudFrontId"
