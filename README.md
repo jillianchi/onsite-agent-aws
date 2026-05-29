@@ -1,4 +1,4 @@
-# Onsite Agent
+# Onsite Agent on AWS
 
 An agentic commerce reference implementation — a conversational shopping assistant that runs entirely in the browser, powered by AWS Bedrock (Claude), MCP tools, and Stripe.
 
@@ -10,21 +10,7 @@ Built as a starting point for teams who want to explore agentic commerce on AWS.
 
 ## How it works
 
-```
-Browser (chat UI)
-  │
-  ├── GET  → CloudFront → S3          (loads the chat UI)
-  │
-  └── POST /chat → API Gateway → Lambda
-                                   │
-                              Bedrock (Claude)
-                                   │ tool calls
-                              MCP Server (embedded in Lambda)
-                                   │
-                         ┌─────────┴──────────┐
-                    catalog.json          Stripe API
-                  (product data)      (Payment Intent)
-```
+![Architecture](docs/aws-agentic-merchant.jpg)
 
 **Key design decision:** The MCP server runs as an embedded stdio subprocess inside the Lambda function. There is no separate service — the entire backend is a single deployable unit.
 
