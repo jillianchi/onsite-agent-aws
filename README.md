@@ -41,8 +41,9 @@ One command deploys the full stack to AWS (Lambda + API Gateway + S3 + CloudFron
 - [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2.html) configured with credentials (`aws configure`)
 - [SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html)
 - Node.js 20+
-- AWS Bedrock model access enabled for Claude in `us-east-1`
 - A [Stripe](https://stripe.com) account (test mode is fine)
+
+> AWS CLI and SAM CLI are required even if you use the setup wizard — the wizard calls `deploy.sh` which uses both under the hood.
 
 ### Option A — Setup wizard (recommended for first deploy)
 
