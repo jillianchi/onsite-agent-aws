@@ -36,6 +36,9 @@ npm-debug.log*
 # Generated at deploy time — contains real keys
 chat-frontend/.env.local
 
+# TypeScript build info
+*.tsbuildinfo
+
 # Next.js build output
 chat-frontend/.next/
 chat-frontend/out/
