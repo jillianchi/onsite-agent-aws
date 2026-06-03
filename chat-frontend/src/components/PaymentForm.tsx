@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import {
   Elements,
+  ExpressCheckoutElement,
   PaymentElement,
   AddressElement,
   useStripe,
@@ -13,17 +14,37 @@ import { stripePromise } from '@/src/lib/stripe';
 import type { PaymentData } from '@/src/lib/types';
 import { cn } from '@/src/lib/utils';
 
+function SuccessState() {
+  return (
+    <div className="py-8 flex flex-col items-center gap-4 text-center">
+      <div className="size-16 rounded-full bg-green-500/10 flex items-center justify-center">
+        <svg className="size-8 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="20 6 9 17 4 12" />
+        </svg>
+      </div>
+      <div className="space-y-1">
+        <p className="font-semibold text-foreground text-base">Payment confirmed</p>
+        <p className="text-sm text-muted-foreground">Your order is on its way!</p>
+      </div>
+      <div className="flex items-center gap-1.5 text-xs text-muted-foreground/50 mt-2">
+        <svg className="size-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
+        </svg>
+        Secured by Stripe
+      </div>
+    </div>
+  );
+}
+
 function CheckoutForm({ amount, onSuccess }: { amount: number; onSuccess: () => void }) {
   const stripe = useStripe();
   const elements = useElements();
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
+  const [expressVisible, setExpressVisible] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!stripe || !elements) return;
-
-    setStatus('loading');
+  const confirmPayment = async () => {
+    if (!stripe || !elements) return false;
     setErrorMessage('');
 
     const { error, paymentIntent } = await stripe.confirmPayment({
@@ -34,45 +55,58 @@ function CheckoutForm({ amount, onSuccess }: { amount: number; onSuccess: () => 
 
     if (error) {
       setErrorMessage(error.message ?? 'Payment failed');
-      setStatus('error');
-    } else if (paymentIntent?.status === 'succeeded') {
-      setStatus('success');
-      onSuccess();
+      return false;
     }
+    return paymentIntent?.status === 'succeeded';
   };
 
-  if (status === 'success') {
-    return (
-      <div className="py-8 flex flex-col items-center gap-4 text-center">
-        <div className="size-16 rounded-full bg-green-500/10 flex items-center justify-center">
-          <svg className="size-8 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="20 6 9 17 4 12" />
-          </svg>
-        </div>
-        <div className="space-y-1">
-          <p className="font-semibold text-foreground text-base">Payment confirmed</p>
-          <p className="text-sm text-muted-foreground">Your order is on its way!</p>
-        </div>
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground/50 mt-2">
-          <svg className="size-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
-          </svg>
-          Secured by Stripe
-        </div>
-      </div>
-    );
-  }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setStatus('loading');
+    const ok = await confirmPayment();
+    if (ok) { setStatus('success'); onSuccess(); }
+    else setStatus('error');
+  };
+
+  const handleExpressConfirm = async () => {
+    setStatus('loading');
+    const ok = await confirmPayment();
+    if (ok) { setStatus('success'); onSuccess(); }
+    else setStatus('error');
+  };
+
+  if (status === 'success') return <SuccessState />;
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <div data-stripe-elements>
-        <PaymentElement
-          options={{
-            layout: 'accordion',
-            wallets: { applePay: 'auto', googlePay: 'auto' },
-          }}
-        />
-      </div>
+      {/* Express checkout — Apple Pay, Google Pay, Link */}
+      <ExpressCheckoutElement
+        onConfirm={handleExpressConfirm}
+        onReady={({ availablePaymentMethods }) => {
+          if (availablePaymentMethods) setExpressVisible(true);
+        }}
+        options={{
+          paymentMethods: { applePay: 'always', googlePay: 'always', link: 'never' },
+          buttonType: { applePay: 'buy', googlePay: 'buy' },
+          buttonHeight: 48,
+        }}
+      />
+
+      {/* Divider — only shown when express methods are available */}
+      {expressVisible && (
+        <div className="flex items-center gap-3">
+          <div className="flex-1 h-px bg-border" />
+          <span className="text-xs text-muted-foreground">or pay with card</span>
+          <div className="flex-1 h-px bg-border" />
+        </div>
+      )}
+
+      <PaymentElement
+        options={{
+          layout: 'accordion',
+          wallets: { applePay: 'never', googlePay: 'never' },
+        }}
+      />
 
       <AddressElement options={{ mode: 'shipping' }} />
 
@@ -184,7 +218,6 @@ export function PaymentForm({ paymentData, onSuccess }: { paymentData: PaymentDa
           <CheckoutForm amount={paymentData.amount} onSuccess={onSuccess} />
         </Elements>
       </div>
-
     </div>
   );
 }
