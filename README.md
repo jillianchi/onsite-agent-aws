@@ -10,6 +10,8 @@ One command deploys the full stack to AWS (Lambda + API Gateway + S3 + CloudFron
 
 ![Chat UI](docs/chat-ui.png)
 
+![Payment UI](docs/payment-ui.png)
+
 ---
 
 ## Architecture overview
