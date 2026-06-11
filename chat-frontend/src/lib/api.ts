@@ -4,12 +4,13 @@ const API_ENDPOINT = process.env.NEXT_PUBLIC_API_ENDPOINT || '';
 
 export async function sendMessage(
   message: string,
-  conversationHistory: ConversationTurn[]
+  conversationHistory: ConversationTurn[],
+  preset?: string
 ): Promise<ApiResponse> {
   const response = await fetch(API_ENDPOINT, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message, conversationHistory }),
+    body: JSON.stringify({ message, conversationHistory, ...(preset && { preset }) }),
   });
 
   if (!response.ok) {

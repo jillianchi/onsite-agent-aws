@@ -1,0 +1,158 @@
+{
+  "storeDescription": "EcoFlow — portable power stations, solar panels, and home energy solutions. Power anything, anywhere.",
+  "currency": "usd",
+  "quickPrompts": [
+    "I need backup power for my home",
+    "What's good for camping and outdoor use?",
+    "I want to go solar — where do I start?",
+    "What can power my devices during an outage?"
+  ],
+  "products": [
+    {
+      "id": "river2-001",
+      "name": "EcoFlow RIVER 2",
+      "description": "Compact 256Wh portable power station. Charges to 100% in under an hour. Perfect for day trips, picnics, and keeping your essentials running.",
+      "price": 249.00,
+      "category": "portable-power",
+      "imageUrl": "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400",
+      "options": {
+        "colors": ["Black"]
+      }
+    },
+    {
+      "id": "river2-max-002",
+      "name": "EcoFlow RIVER 2 Max",
+      "description": "512Wh capacity with 11 outlets. Runs a mini fridge, charges laptops, and powers a CPAP machine overnight. Great for weekend trips and van life.",
+      "price": 449.00,
+      "category": "portable-power",
+      "imageUrl": "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400",
+      "options": {
+        "colors": ["Black"]
+      }
+    },
+    {
+      "id": "river2-pro-003",
+      "name": "EcoFlow RIVER 2 Pro",
+      "description": "768Wh with 800W output (surge 1600W). Handles most appliances and charges in 70 minutes via AC. The most versatile in the RIVER lineup.",
+      "price": 549.00,
+      "category": "portable-power",
+      "imageUrl": "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400",
+      "options": {
+        "colors": ["Black"]
+      }
+    },
+    {
+      "id": "delta2-004",
+      "name": "EcoFlow DELTA 2",
+      "description": "1024Wh workhorse with 1800W output. Powers a full camping setup or acts as a home backup for essentials. Expandable up to 2048Wh with an extra battery.",
+      "price": 799.00,
+      "category": "portable-power",
+      "imageUrl": "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400",
+      "options": {
+        "colors": ["Black"]
+      }
+    },
+    {
+      "id": "delta2-max-005",
+      "name": "EcoFlow DELTA 2 Max",
+      "description": "2048Wh with 2400W output. Keeps your fridge, lights, and router running through a full day outage. Expandable to 6144Wh for extended outages.",
+      "price": 1399.00,
+      "category": "portable-power",
+      "imageUrl": "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400",
+      "options": {
+        "colors": ["Black"]
+      }
+    },
+    {
+      "id": "delta-pro-006",
+      "name": "EcoFlow DELTA Pro",
+      "description": "3600Wh professional-grade power station with 3600W output. Whole-home circuit integration via EcoFlow Smart Home Panel. The closest thing to a home generator.",
+      "price": 2799.00,
+      "category": "home-backup",
+      "imageUrl": "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400",
+      "options": {
+        "colors": ["Black"]
+      }
+    },
+    {
+      "id": "delta-pro-ultra-007",
+      "name": "EcoFlow DELTA Pro Ultra",
+      "description": "6144Wh base capacity, expandable to 90kWh. Whole-home backup with automatic switchover in 30ms. Runs heavy appliances — AC, washer, oven — simultaneously.",
+      "price": 5799.00,
+      "category": "home-backup",
+      "imageUrl": "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400",
+      "options": {
+        "models": ["6144Wh Base", "12288Wh (2 batteries)", "18432Wh (3 batteries)"]
+      }
+    },
+    {
+      "id": "smart-home-panel-008",
+      "name": "EcoFlow Smart Home Panel 2",
+      "description": "Connects your DELTA Pro or DELTA Pro Ultra directly to your home circuits. Automatically switches to battery when grid goes down. Supports up to 10 circuits.",
+      "price": 1099.00,
+      "category": "home-backup",
+      "imageUrl": "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400",
+      "options": {}
+    },
+    {
+      "id": "solar-110-009",
+      "name": "EcoFlow 110W Portable Solar Panel",
+      "description": "Foldable, lightweight 110W panel with 23.4% efficiency. Waterproof and connects to any EcoFlow power station via XT60 connector. Perfect for camping and travel.",
+      "price": 199.00,
+      "category": "solar",
+      "imageUrl": "https://images.unsplash.com/photo-1509391366360-2e959784a276?w=400",
+      "options": {}
+    },
+    {
+      "id": "solar-220-010",
+      "name": "EcoFlow 220W Bifacial Solar Panel",
+      "description": "Captures sunlight from both sides for up to 25% more power. Rigid panel ideal for RVs, balconies, and semi-permanent setups. Folds flat for transport.",
+      "price": 349.00,
+      "category": "solar",
+      "imageUrl": "https://images.unsplash.com/photo-1509391366360-2e959784a276?w=400",
+      "options": {}
+    },
+    {
+      "id": "solar-400-011",
+      "name": "EcoFlow 400W Rigid Solar Panel",
+      "description": "High-output rigid panel for home and RV rooftop installation. 400W output pairs perfectly with DELTA Pro for a fully off-grid setup.",
+      "price": 599.00,
+      "category": "solar",
+      "imageUrl": "https://images.unsplash.com/photo-1509391366360-2e959784a276?w=400",
+      "options": {}
+    },
+    {
+      "id": "powerstream-012",
+      "name": "EcoFlow PowerStream Microinverter",
+      "description": "Plug your solar panels directly into a home power socket. Feed excess solar power into your home grid and cut your electricity bill by up to 50%.",
+      "price": 449.00,
+      "category": "solar",
+      "imageUrl": "https://images.unsplash.com/photo-1509391366360-2e959784a276?w=400",
+      "options": {
+        "models": ["600W", "800W"]
+      }
+    },
+    {
+      "id": "rapid-power-bank-013",
+      "name": "EcoFlow RAPID Power Bank 10000",
+      "description": "10000mAh with 65W bidirectional charging. Charges your MacBook in under 2 hours, or charges itself in under 1.5 hours. Slim enough for your jacket pocket.",
+      "price": 79.00,
+      "category": "power-banks",
+      "imageUrl": "https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=400",
+      "options": {
+        "colors": ["Black", "White"]
+      }
+    },
+    {
+      "id": "rapid-power-bank-20-014",
+      "name": "EcoFlow RAPID Power Bank 20000",
+      "description": "20000mAh with 100W output. Powers laptops, tablets, and phones simultaneously. The only power bank you need for a full day of heavy use.",
+      "price": 109.00,
+      "category": "power-banks",
+      "imageUrl": "https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=400",
+      "options": {
+        "colors": ["Black", "White"]
+      }
+    }
+  ]
+}

@@ -9,15 +9,29 @@ import { DebugPanel, type DebugEntry } from './DebugPanel';
 import { sendMessage } from '@/src/lib/api';
 import type { ChatMessage, ConversationTurn, ProductSummary } from '@/src/lib/types';
 import { cn } from '@/src/lib/utils';
+import { DemoSwitcher, DEMO_PRESETS, type PresetKey } from './DemoSwitcher';
 
-const MERCHANT_NAME = process.env.NEXT_PUBLIC_MERCHANT_NAME || 'My Store';
-const PERSONA_NAME = process.env.NEXT_PUBLIC_AI_PERSONA_NAME || 'Alex';
-const PERSONA_DESCRIPTION = process.env.NEXT_PUBLIC_AI_PERSONA_DESCRIPTION || 'Your shopping assistant';
-const STORAGE_KEY = 'onsite_concierge_conversation';
+const DEFAULT_MERCHANT_NAME = process.env.NEXT_PUBLIC_MERCHANT_NAME || 'My Store';
+const DEFAULT_PERSONA_NAME = process.env.NEXT_PUBLIC_AI_PERSONA_NAME || 'Alex';
+const DEFAULT_PERSONA_DESCRIPTION = process.env.NEXT_PUBLIC_AI_PERSONA_DESCRIPTION || 'Your shopping assistant';
+const STORAGE_KEY = 'onsite_agent_conversation';
 
 export function Chat() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [conversationHistory, setConversationHistory] = useState<ConversationTurn[]>([]);
+  const [activePreset, setActivePreset] = useState<PresetKey>('generic');
+
+  const preset = DEMO_PRESETS[activePreset];
+  const MERCHANT_NAME = preset?.name || DEFAULT_MERCHANT_NAME;
+  const PERSONA_NAME = preset?.personaName || DEFAULT_PERSONA_NAME;
+  const PERSONA_DESCRIPTION = DEFAULT_PERSONA_DESCRIPTION;
+
+  const handleSwitchPreset = useCallback((newPreset: PresetKey) => {
+    setActivePreset(newPreset);
+    setMessages([]);
+    setConversationHistory([]);
+    localStorage.removeItem(STORAGE_KEY);
+  }, []);
   const [isLoading, setIsLoading] = useState(false);
   const [debugOpen, setDebugOpen] = useState(false);
   const [debugLog, setDebugLog] = useState<DebugEntry[]>([]);
@@ -49,7 +63,7 @@ export function Chat() {
     setIsLoading(true);
 
     try {
-      const data = await sendMessage(text, conversationHistory);
+      const data = await sendMessage(text, conversationHistory, activePreset);
 
       setDebugLog((prev) => [...prev, {
         timestamp: new Date().toLocaleTimeString(),
@@ -94,7 +108,7 @@ export function Chat() {
     const buyMessage = `DIRECT_BUY: productId=${product.id} name=${product.name} model=${model} color=${color} price=${product.price}`;
 
     try {
-      const data = await sendMessage(buyMessage, conversationHistory);
+      const data = await sendMessage(buyMessage, conversationHistory, activePreset);
       setDebugLog((prev) => [...prev, {
         timestamp: new Date().toLocaleTimeString(),
         request: { message: buyMessage, historyLength: conversationHistory.length },
@@ -125,7 +139,7 @@ export function Chat() {
     if (isLoading) return;
     setIsLoading(true);
     try {
-      const data = await sendMessage("proceed to checkout", conversationHistory);
+      const data = await sendMessage("proceed to checkout", conversationHistory, activePreset);
       setDebugLog((prev) => [...prev, {
         timestamp: new Date().toLocaleTimeString(),
         request: { message: 'checkout', historyLength: conversationHistory.length },
@@ -156,7 +170,7 @@ export function Chat() {
       const msg = productName
         ? `PAYMENT_CONFIRMED: product="${productName}"`
         : 'PAYMENT_CONFIRMED';
-      const data = await sendMessage(msg, conversationHistory);
+      const data = await sendMessage(msg, conversationHistory, activePreset);
       setMessages((prev) => [...prev, {
         id: `a-${Date.now()}`,
         role: 'assistant',
@@ -226,6 +240,8 @@ export function Chat() {
         conversationHistory={conversationHistory}
         debugLog={debugLog}
       />
+
+      <DemoSwitcher activePreset={activePreset} onSwitch={handleSwitchPreset} />
     </div>
   );
 }

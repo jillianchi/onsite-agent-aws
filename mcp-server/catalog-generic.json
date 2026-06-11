@@ -1,0 +1,268 @@
+{
+  "storeDescription": "The official Dunder Mifflin online store. Paper, merch, and awards — Scranton's finest since 1949.",
+  "currency": "usd",
+  "quickPrompts": [
+    "We're running low on paper, help!",
+    "I'm part of the Party Planning Committee and need to buy gifts for the team",
+    "It's the time of the year - we need to start awarding Dundies!!",
+    "I want a promotion. What can I buy for my manager?"
+  ],
+  "products": [
+    {
+      "id": "mug-boss-001",
+      "name": "World's Best Boss Mug",
+      "description": "As seen on Michael Scott's desk. Self-declared, universally accepted. 11oz ceramic, dishwasher safe.",
+      "price": 14.99,
+      "category": "mugs",
+      "imageUrl": "https://dunder-mifflin-assets.s3.us-east-1.amazonaws.com/mug-worlds-best-boss.png",
+      "options": {
+        "colors": [
+          "White",
+          "Black"
+        ]
+      }
+    },
+    {
+      "id": "mug-assistant-002",
+      "name": "Assistant to the Regional Manager Mug",
+      "description": "Not Assistant Regional Manager. There is a difference. Ask Dwight. 11oz ceramic.",
+      "price": 14.99,
+      "category": "mugs",
+      "imageUrl": "https://dunder-mifflin-assets.s3.us-east-1.amazonaws.com/mug-assistant-regional-mgr.png",
+      "options": {
+        "colors": [
+          "White",
+          "Black"
+        ]
+      }
+    },
+    {
+      "id": "mug-thats-003",
+      "name": "That's What She Said Mug",
+      "description": "Michael Scott's most versatile contribution to the English language. On a mug. 11oz ceramic.",
+      "price": 12.99,
+      "category": "mugs",
+      "imageUrl": "https://dunder-mifflin-assets.s3.us-east-1.amazonaws.com/mug-thats-what-she.png",
+      "options": {
+        "colors": [
+          "White",
+          "Black"
+        ]
+      }
+    },
+    {
+      "id": "mug-bears-004",
+      "name": "Bears. Beets. Battlestar Galactica. Mug",
+      "description": "Jim Halpert's most memorable impression, immortalised in ceramic. Dwight does not find it funny. 11oz.",
+      "price": 14.99,
+      "category": "mugs",
+      "imageUrl": "https://dunder-mifflin-assets.s3.us-east-1.amazonaws.com/mug-bears-beets.png",
+      "options": {
+        "colors": [
+          "White",
+          "Mustard"
+        ]
+      }
+    },
+    {
+      "id": "mug-threat-005",
+      "name": "Threat Level Midnight Mug",
+      "description": "Inspired by Michael Scott's magnum opus screenplay. A collector's item for true fans. 11oz ceramic.",
+      "price": 16.99,
+      "category": "mugs",
+      "imageUrl": "https://dunder-mifflin-assets.s3.us-east-1.amazonaws.com/mug-threat-level.png",
+      "options": {
+        "colors": [
+          "Black",
+          "Midnight Blue"
+        ]
+      }
+    },
+    {
+      "id": "paper-letter-001",
+      "name": "Dunder Mifflin Letter Paper",
+      "description": "Premium 20lb, 92-bright paper. The paper Scranton runs on. 500 sheets per ream.",
+      "price": 9.99,
+      "category": "paper",
+      "imageUrl": "https://dunder-mifflin-assets.s3.us-east-1.amazonaws.com/paper-letter.png",
+      "options": {
+        "colors": [
+          "Single Ream",
+          "Case of 5",
+          "Case of 10"
+        ]
+      }
+    },
+    {
+      "id": "paper-a4-002",
+      "name": "Dunder Mifflin A4 Paper",
+      "description": "Same Scranton quality, international size. 80gsm, acid-free. 500 sheets per ream.",
+      "price": 9.99,
+      "category": "paper",
+      "imageUrl": "https://dunder-mifflin-assets.s3.us-east-1.amazonaws.com/paper-a4.png",
+      "options": {
+        "colors": [
+          "Single Ream",
+          "Case of 5",
+          "Case of 10"
+        ]
+      }
+    },
+    {
+      "id": "paper-premium-003",
+      "name": "Dunder Mifflin Premium Bright",
+      "description": "98-bright, ultra-white paper. For presentations that demand to be noticed. Recycled — Dwight disapproves.",
+      "price": 14.99,
+      "category": "paper",
+      "imageUrl": "https://dunder-mifflin-assets.s3.us-east-1.amazonaws.com/paper-premium-bright.png",
+      "options": {
+        "colors": [
+          "Single Ream",
+          "Case of 5"
+        ]
+      }
+    },
+    {
+      "id": "paper-infinity-004",
+      "name": "Dunder Mifflin Infinity Edition",
+      "description": "Our tech-forward paper line. Ryan Howard approved. Features a watermark visible only under UV light.",
+      "price": 19.99,
+      "category": "paper",
+      "imageUrl": "https://dunder-mifflin-assets.s3.us-east-1.amazonaws.com/paper-infinity.png",
+      "options": {
+        "colors": [
+          "Single Ream",
+          "Case of 5"
+        ]
+      }
+    },
+    {
+      "id": "paper-goldenrod-005",
+      "name": "Goldenrod Memo Paper",
+      "description": "Phyllis's favourite. Pastel goldenrod colour for inter-office memos that actually get read.",
+      "price": 7.99,
+      "category": "paper",
+      "imageUrl": "https://dunder-mifflin-assets.s3.us-east-1.amazonaws.com/paper-goldenrod.png",
+      "options": {
+        "colors": [
+          "Single Ream",
+          "Case of 5"
+        ]
+      }
+    },
+    {
+      "id": "award-sales-001",
+      "name": "Dundie — Best Salesperson",
+      "description": "For the Dwight Schrute of your office. Engraved aluminium trophy, 12 inches tall.",
+      "price": 29.99,
+      "category": "awards",
+      "imageUrl": "https://dunder-mifflin-assets.s3.us-east-1.amazonaws.com/dundie-best-sales.png",
+      "options": {}
+    },
+    {
+      "id": "award-smile-002",
+      "name": "Dundie — Best Smile",
+      "description": "Some smiles just light up the break room. Ask Pam. Engraved aluminium trophy.",
+      "price": 29.99,
+      "category": "awards",
+      "imageUrl": "https://dunder-mifflin-assets.s3.us-east-1.amazonaws.com/dundie-best-smile.png",
+      "options": {}
+    },
+    {
+      "id": "award-lunch-003",
+      "name": "Dundie — Longest Lunch Break",
+      "description": "Meredith holds the all-time record at 4 hours 17 minutes. Does your office have a contender?",
+      "price": 29.99,
+      "category": "awards",
+      "imageUrl": "https://dunder-mifflin-assets.s3.us-east-1.amazonaws.com/dundie-longest-lunch.png",
+      "options": {}
+    },
+    {
+      "id": "award-drama-004",
+      "name": "Dundie — Most Dramatic Exit",
+      "description": "Inspired by Michael Scott's legendary resignation. For the colleague who never leaves quietly.",
+      "price": 29.99,
+      "category": "awards",
+      "imageUrl": "https://dunder-mifflin-assets.s3.us-east-1.amazonaws.com/dundie-most-dramatic.png",
+      "options": {}
+    },
+    {
+      "id": "award-custom-005",
+      "name": "Dundie — Most Likely to Eat the Profits",
+      "description": "Kevin Malone's most celebrated achievement. Engraved aluminium trophy, 12 inches tall.",
+      "price": 34.99,
+      "category": "awards",
+      "imageUrl": "https://dunder-mifflin-assets.s3.us-east-1.amazonaws.com/dundie-most-likely.png",
+      "options": {}
+    },
+    {
+      "id": "bag-classic-001",
+      "name": "Dunder Mifflin Tote Bag",
+      "description": "Heavy-duty canvas tote with the Dunder Mifflin logo. Fits a ream of paper — obviously.",
+      "price": 19.99,
+      "category": "bags",
+      "imageUrl": "https://dunder-mifflin-assets.s3.us-east-1.amazonaws.com/bag-tote.png",
+      "options": {
+        "colors": [
+          "White",
+          "Navy"
+        ]
+      }
+    },
+    {
+      "id": "bag-xl-002",
+      "name": "Dunder Mifflin XL Tote Bag",
+      "description": "For when one ream is never enough. Extra-large canvas with reinforced handles. Stanley approved.",
+      "price": 24.99,
+      "category": "bags",
+      "imageUrl": "https://dunder-mifflin-assets.s3.us-east-1.amazonaws.com/bag-xl.png",
+      "options": {
+        "colors": [
+          "White",
+          "Navy"
+        ]
+      }
+    },
+    {
+      "id": "bag-schrute-003",
+      "name": "Schrute Farms Tote Bag",
+      "description": "Bed and Breakfast. Beet farm. Table-making. Proudly printed on 100% canvas. Dwight demands you use it daily.",
+      "price": 19.99,
+      "category": "bags",
+      "imageUrl": "https://dunder-mifflin-assets.s3.us-east-1.amazonaws.com/bag-schrute-farm.png",
+      "options": {
+        "colors": [
+          "Natural",
+          "Olive"
+        ]
+      }
+    },
+    {
+      "id": "bag-scranton-004",
+      "name": "Scranton: The Electric City Backpack",
+      "description": "Represent the greatest city in northeast Pennsylvania. Padded laptop compartment. Kevin uses it for snacks.",
+      "price": 39.99,
+      "category": "bags",
+      "imageUrl": "https://dunder-mifflin-assets.s3.us-east-1.amazonaws.com/bag-electric-city.png",
+      "options": {
+        "colors": [
+          "Black",
+          "Navy"
+        ]
+      }
+    },
+    {
+      "id": "bag-threat-005",
+      "name": "Threat Level Midnight Tote",
+      "description": "Limited edition. Inspired by Michael Scarn's greatest adventure. Black with gold foil print.",
+      "price": 27.99,
+      "category": "bags",
+      "imageUrl": "https://dunder-mifflin-assets.s3.us-east-1.amazonaws.com/bag-threat-level.png",
+      "options": {
+        "colors": [
+          "Black"
+        ]
+      }
+    }
+  ]
+}

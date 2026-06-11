@@ -62,6 +62,9 @@ cp -r ../mcp-server/build/* dist/mcp-server/
 cp ../mcp-server/package.json dist/mcp-server/
 # Bundle catalog.json so the MCP server can find it at runtime
 [ -f ../mcp-server/catalog.json ] && cp ../mcp-server/catalog.json dist/mcp-server/
+# Bundle demo preset catalogs if present
+[ -f ../mcp-server/catalog-generic.json ] && cp ../mcp-server/catalog-generic.json dist/mcp-server/
+[ -f ../mcp-server/catalog-ecoflow.json ] && cp ../mcp-server/catalog-ecoflow.json dist/mcp-server/
 cd dist/mcp-server && npm install --production --silent
 cd ../..
 echo -e "${GREEN}MCP server bundled${NC}\n"

@@ -16,6 +16,22 @@ const ssmClient = new SSMClient({ region });
 
 const BEDROCK_MODEL_ID = process.env.BEDROCK_MODEL_ID || "us.anthropic.claude-haiku-4-5-20251001-v1:0";
 
+// Demo presets — only active in the demo branch deployment
+const DEMO_PRESETS: Record<string, { name: string; personaName: string; personaDescription: string; catalogFile: string }> = {
+  generic: {
+    name: "Dunder Mifflin",
+    personaName: "Recyclops",
+    personaDescription: "I will aggressively calculate your precise shopping needs to eliminate retail waste — prepare to be recommended exactly what you require!",
+    catalogFile: "catalog-generic.json",
+  },
+  ecoflow: {
+    name: "EcoFlow",
+    personaName: "Spark",
+    personaDescription: "Your clean energy advisor at EcoFlow",
+    catalogFile: "catalog-ecoflow.json",
+  },
+};
+
 let cachedStripeKey: string | null = null;
 
 async function getStripeSecretKey(): Promise<string> {
@@ -115,10 +131,11 @@ async function callMCPTool(toolName: string, args: any, stripeSecretKey: string)
   return JSON.parse(JSON.stringify(data));
 }
 
-function buildSystemPrompt(): string {
-  const personaName = process.env.AI_PERSONA_NAME || "Alex";
-  const merchantName = process.env.MERCHANT_NAME || "our store";
-  const personaDescription = process.env.AI_PERSONA_DESCRIPTION || "shopping assistant";
+function buildSystemPrompt(preset?: string): string {
+  const presetConfig = preset && DEMO_PRESETS[preset] ? DEMO_PRESETS[preset] : null;
+  const personaName = presetConfig?.personaName || process.env.AI_PERSONA_NAME || "Alex";
+  const merchantName = presetConfig?.name || process.env.MERCHANT_NAME || "our store";
+  const personaDescription = presetConfig?.personaDescription || process.env.AI_PERSONA_DESCRIPTION || "shopping assistant";
 
   return `You are ${personaName}, a ${personaDescription} at ${merchantName}. Help customers find and purchase the right product.
 
@@ -145,7 +162,12 @@ export async function handler(event: any) {
     console.log("Received event:", JSON.stringify(event));
 
     const body = JSON.parse(event.body || "{}");
-    const { message, conversationHistory = [] } = body;
+    const { message, conversationHistory = [], preset } = body;
+
+    // Set catalog path based on preset (demo branch only)
+    if (preset && DEMO_PRESETS[preset]) {
+      process.env.CATALOG_PATH = `${__dirname}/mcp-server/${DEMO_PRESETS[preset].catalogFile}`;
+    }
 
     if (!message) {
       return {
@@ -156,7 +178,7 @@ export async function handler(event: any) {
     }
 
     const stripeSecretKey = await getStripeSecretKey();
-    const systemPrompt = buildSystemPrompt();
+    const systemPrompt = buildSystemPrompt(preset);
 
     const messages: Message[] = [
       ...conversationHistory,
@@ -234,6 +256,8 @@ export async function handler(event: any) {
     const finalText = response.output?.message?.content?.[0]?.text || "Done!";
     if (response.output?.message) messages.push(response.output.message);
 
+    const activePreset = preset && DEMO_PRESETS[preset] ? DEMO_PRESETS[preset] : null;
+
     return {
       statusCode: 200,
       headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
@@ -244,6 +268,7 @@ export async function handler(event: any) {
         paymentData,
         config: configData,
         productList: productListData?.products || null,
+        presetMeta: activePreset ? { name: activePreset.name, personaName: activePreset.personaName } : null,
       })
     };
 
