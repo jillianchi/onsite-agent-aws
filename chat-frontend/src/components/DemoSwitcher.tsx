@@ -26,10 +26,10 @@ export const DEMO_PRESETS = {
     description: 'Portable power & solar',
     emoji: '⚡',
     quickPrompts: [
-      "I need backup power for my home",
-      "What's good for camping and outdoor use?",
-      "I want to go solar — where do I start?",
-      "What can power my devices during an outage?",
+      "There's a storm warning — I want to be prepared this week",
+      "I go camping every month and keep running out of battery",
+      "I want to cut my electricity bill — where do I start with solar?",
+      "I live in my van and need reliable daily power",
     ],
   },
 } as const;
