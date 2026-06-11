@@ -12,6 +12,12 @@ export const DEMO_PRESETS = {
     personaName: 'Recyclops',
     description: 'Office supplies & merch',
     emoji: '📄',
+    quickPrompts: [
+      "We're running low on paper, help!",
+      "I'm part of the Party Planning Committee and need to buy gifts for the team",
+      "It's the time of the year - we need to start awarding Dundies!!",
+      "I want a promotion. What can I buy for my manager?",
+    ],
   },
   ecoflow: {
     key: 'ecoflow',
@@ -19,6 +25,12 @@ export const DEMO_PRESETS = {
     personaName: 'Spark',
     description: 'Portable power & solar',
     emoji: '⚡',
+    quickPrompts: [
+      "I need backup power for my home",
+      "What's good for camping and outdoor use?",
+      "I want to go solar — where do I start?",
+      "What can power my devices during an outage?",
+    ],
   },
 } as const;
 

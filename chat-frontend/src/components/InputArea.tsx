@@ -21,10 +21,13 @@ const QUICK_PROMPTS = getQuickPrompts();
 export function InputArea({
   onSend,
   isLoading,
+  quickPrompts: quickPromptsProp,
 }: {
   onSend: (message: string) => void;
   isLoading: boolean;
+  quickPrompts?: string[];
 }) {
+  const activePrompts = quickPromptsProp && quickPromptsProp.length > 0 ? quickPromptsProp : QUICK_PROMPTS;
   const [value, setValue] = useState('');
   const [isPromptsOpen, setIsPromptsOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -131,7 +134,7 @@ export function InputArea({
                         <X className="size-3.5" />
                       </button>
                     </div>
-                    {QUICK_PROMPTS.map((prompt) => (
+                    {activePrompts.map((prompt) => (
                       <button
                         key={prompt}
                         onClick={() => handlePromptSelect(prompt)}

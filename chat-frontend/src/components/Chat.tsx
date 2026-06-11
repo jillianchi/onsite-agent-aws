@@ -226,12 +226,13 @@ export function Chat() {
           isLoading={isLoading}
           personaName={PERSONA_NAME}
           merchantName={MERCHANT_NAME}
+          quickPrompts={preset.quickPrompts as unknown as string[]}
           onPromptSelect={handleSend}
           onPaymentSuccess={handlePaymentSuccess}
           onCheckout={handleCheckout}
           onProductBuy={handleProductBuy}
         />
-        <InputArea onSend={handleSend} isLoading={isLoading} />
+        <InputArea onSend={handleSend} isLoading={isLoading} quickPrompts={preset.quickPrompts as unknown as string[]} />
       </div>
 
       <DebugPanel

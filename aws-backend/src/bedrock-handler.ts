@@ -103,7 +103,10 @@ async function callMCPTool(toolName: string, args: any, stripeSecretKey: string)
   const transport = new StdioClientTransport({
     command: "node",
     args: [process.env.MCP_SERVER_PATH || "./mcp-server/index.js"],
-    env: { STRIPE_SECRET_KEY: stripeSecretKey }
+    env: {
+      STRIPE_SECRET_KEY: stripeSecretKey,
+      ...(process.env.CATALOG_PATH && { CATALOG_PATH: process.env.CATALOG_PATH }),
+    }
   });
 
   const client = new Client(

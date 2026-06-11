@@ -15,6 +15,7 @@ export function MessageList({
   isLoading,
   personaName,
   merchantName,
+  quickPrompts,
   onPromptSelect,
   onPaymentSuccess,
   onCheckout,
@@ -24,6 +25,7 @@ export function MessageList({
   isLoading: boolean;
   personaName: string;
   merchantName: string;
+  quickPrompts?: string[];
   onPromptSelect: (prompt: string) => void;
   onPaymentSuccess: (productName?: string) => void;
   onCheckout: () => void;
@@ -59,6 +61,7 @@ export function MessageList({
             <WelcomeScreen
               personaName={personaName}
               merchantName={merchantName}
+              quickPrompts={quickPrompts}
               onPromptSelect={onPromptSelect}
             />
           ) : (

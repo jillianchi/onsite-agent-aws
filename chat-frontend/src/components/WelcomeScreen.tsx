@@ -23,12 +23,15 @@ function getQuickPrompts(): string[] {
 export function WelcomeScreen({
   personaName,
   merchantName,
+  quickPrompts: quickPromptsProp,
   onPromptSelect,
 }: {
   personaName: string;
   merchantName: string;
+  quickPrompts?: string[];
   onPromptSelect: (prompt: string) => void;
 }) {
+  const prompts = quickPromptsProp && quickPromptsProp.length > 0 ? quickPromptsProp : getQuickPrompts();
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -46,7 +49,7 @@ export function WelcomeScreen({
       </div>
 
       <div className="flex flex-col gap-2 w-full max-w-md">
-        {getQuickPrompts().map((prompt, i) => (
+        {prompts.map((prompt, i) => (
           <motion.button
             key={prompt}
             initial={{ opacity: 0, y: 8 }}

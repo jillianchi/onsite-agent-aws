@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:aws.amazon.com)",
+      "mcp__toolshed__execute_internal_search",
+      "mcp__toolshed__get_trailhead_doc",
+      "mcp__toolshed__fetch_internal_search_result",
+      "Bash(ls ~/Downloads/demoeng-acp-main 2>/dev/null || echo \"not found\")",
+      "Read(//Users/jills/Downloads/demoeng-acp-main/**)",
+      "Bash(./deploy.sh)",
+      "Bash(rg --files /Users/jills/onsite-ac)",
+      "Bash(npm run *)",
+      "Bash(git commit -m 'Add chat UI and setup wizard screenshots to README *)",
+      "Bash(/usr/bin/git push *)",
+      "WebFetch(domain:www.ecoflow.com)",
+      "Bash(git checkout *)",
+      "Bash(git -C /Users/jills/onsite-ac add aws-backend/src/bedrock-handler.ts)",
+      "Bash(git -C /Users/jills/onsite-ac commit -m 'Fix __dirname not defined in ESM Lambda — use process.cwd\\(\\) instead *)",
+      "Bash(/usr/bin/git -C /Users/jills/onsite-ac push origin demo)"
+    ]
+  }
+}
