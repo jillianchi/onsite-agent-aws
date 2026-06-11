@@ -166,7 +166,7 @@ export async function handler(event: any) {
 
     // Set catalog path based on preset (demo branch only)
     if (preset && DEMO_PRESETS[preset]) {
-      process.env.CATALOG_PATH = `${__dirname}/mcp-server/${DEMO_PRESETS[preset].catalogFile}`;
+      process.env.CATALOG_PATH = `${process.cwd()}/mcp-server/${DEMO_PRESETS[preset].catalogFile}`;
     }
 
     if (!message) {
