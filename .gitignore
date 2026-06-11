@@ -49,3 +49,4 @@ chat-frontend/next-env.d.ts
 # SAM deployment config — contains account-specific values
 infrastructure/samconfig.toml
 
+.claude/
