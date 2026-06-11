@@ -19,7 +19,7 @@ const STORAGE_KEY = 'onsite_agent_conversation';
 export function Chat() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [conversationHistory, setConversationHistory] = useState<ConversationTurn[]>([]);
-  const [activePreset, setActivePreset] = useState<PresetKey>('generic');
+  const [activePreset, setActivePreset] = useState<PresetKey>('ecoflow');
 
   const preset = DEMO_PRESETS[activePreset];
   const MERCHANT_NAME = preset?.name || DEFAULT_MERCHANT_NAME;
